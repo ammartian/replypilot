@@ -7,11 +7,11 @@ const mockMutation = vi.hoisted(() => vi.fn())
 const mockConstructEvent = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/stripe', () => ({
-  stripe: {
+  getStripe: () => ({
     webhooks: {
       constructEvent: mockConstructEvent,
     },
-  },
+  }),
 }))
 
 vi.mock('@/convex/agents', () => ({

@@ -6,13 +6,13 @@ const mockCheckoutCreate = vi.hoisted(() => vi.fn())
 const mockGetAuthUserId = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/stripe', () => ({
-  stripe: {
+  getStripe: () => ({
     checkout: {
       sessions: {
         create: mockCheckoutCreate,
       },
     },
-  },
+  }),
 }))
 
 vi.mock('@convex-dev/auth/nextjs/server', () => ({

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { ConvexHttpClient } from 'convex/browser'
 import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server'
 import { api } from '@/convex/_generated/api'
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     customer: agent.stripeCustomerId,
     customer_email: agent.stripeCustomerId ? undefined : agent.email,
     line_items: [{ price: PRICE_IDS[plan], quantity: 1 }],
