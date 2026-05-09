@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useAuthActions } from '@convex-dev/auth/react'
+import { useMutation } from 'convex/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -9,9 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { validateSignupInput } from '@/lib/auth-validation'
+import { api } from '@/convex/_generated/api'
 
 export default function SignupPage() {
   const { signIn } = useAuthActions()
+  const createAgent = useMutation(api.agents.createAgent)
   const router = useRouter()
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -44,6 +47,7 @@ export default function SignupPage() {
         email: result.data.email,
         password: result.data.password,
       })
+      await createAgent({ name: result.data.name, email: result.data.email })
       router.push('/onboarding')
     } catch {
       setServerError('Signup failed. Please try again.')
