@@ -57,6 +57,7 @@ test.describe('Agent signup flow', () => {
   })
 })
 
+
 test.describe('Dashboard', () => {
   test('unauthenticated redirect to login', async ({ page }) => {
     await page.goto('/dashboard')
