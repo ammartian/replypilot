@@ -29,6 +29,35 @@ export const createAgent = mutation({
   },
 })
 
+// Fallback: creates agent using profile stored in auth users table.
+// Called from onboarding when signup's createAgent call failed silently.
+export const ensureAgent = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('Not authenticated')
+
+    const existing = await ctx.db
+      .query('agents')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (existing) return existing._id
+
+    const user = await ctx.db.get(userId)
+    if (!user) throw new Error('User record not found')
+
+    return ctx.db.insert('agents', {
+      userId,
+      name: (user as { name?: string }).name ?? 'Agent',
+      email: (user as { email?: string }).email ?? '',
+      plan: 'plus',
+      status: 'pending',
+      whatsappStatus: 'pending',
+      subscriptionStatus: 'inactive',
+    })
+  },
+})
+
 export const getAgent = query({
   args: {},
   handler: async (ctx) => {

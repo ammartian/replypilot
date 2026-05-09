@@ -47,13 +47,15 @@ export default function SignupPage() {
         email: result.data.email,
         password: result.data.password,
       })
-      await createAgent({ name: result.data.name, email: result.data.email })
-      router.push('/onboarding')
     } catch {
       setServerError('Signup failed. Please try again.')
-    } finally {
       setLoading(false)
+      return
     }
+    // Best-effort: onboarding page will call ensureAgent as fallback if this fails
+    createAgent({ name: result.data.name, email: result.data.email }).catch(() => {})
+    router.push('/onboarding')
+    setLoading(false)
   }
 
   return (

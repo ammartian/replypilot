@@ -15,6 +15,7 @@ import { CheckCircle, Circle, Loader2 } from 'lucide-react'
 export default function OnboardingPage() {
   const router = useRouter()
   const agent = useQuery(api.agents.getAgent)
+  const ensureAgent = useMutation(api.agents.ensureAgent)
   const setWhatsappNumber = useMutation(api.agents.setWhatsappNumber)
 
   const [waNumber, setWaNumber] = useState('')
@@ -24,12 +25,17 @@ export default function OnboardingPage() {
 
   const hasListings = useQuery(api.listings.hasListingsForAgent) ?? false
 
+  // agent === null means loaded but no record — signup's createAgent failed silently
+  useEffect(() => {
+    if (agent === null) ensureAgent().catch(() => {})
+  }, [agent, ensureAgent])
+
   const step =
-    agent === undefined
+    agent === undefined || agent === null
       ? null
       : getOnboardingStep({
-          subscriptionStatus: agent?.subscriptionStatus ?? 'inactive',
-          whatsappStatus: agent?.whatsappStatus ?? 'pending',
+          subscriptionStatus: agent.subscriptionStatus ?? 'inactive',
+          whatsappStatus: agent.whatsappStatus ?? 'pending',
           hasListings,
         })
 
