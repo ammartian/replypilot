@@ -49,8 +49,9 @@ export const processListing = action({
       }
 
       await ctx.runMutation(api.listings.updateListingStatus, { listingId, status: 'ready' })
-    } catch {
+    } catch (err) {
       await ctx.runMutation(api.listings.updateListingStatus, { listingId, status: 'error' })
+      throw err
     }
   },
 })
