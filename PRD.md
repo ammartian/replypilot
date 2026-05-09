@@ -240,13 +240,13 @@ Each step: write failing test → implement → pass → refactor.
 1. ✅ **Test setup** — Vitest, Playwright, convex-test, shadcn/ui
 2. ✅ **Convex schema** — constants, schema, lead classification logic
 3. ✅ **Auth** — validation, signup/login pages, Convex Auth, `proxy.ts`
-4. **Stripe** — webhook handler tests (mock events) → implement
-5. **Onboarding** — subscription status checks → pay step UI
-6. **File upload** — upload mutation + embedding pipeline (mock OpenAI)
-7. **WhatsApp webhook** — inbound message handler (mock 360dialog)
-8. **AI pipeline** — classification + vector search
-9. **Leads dashboard** — Convex queries → UI
-10. **E2E** — Playwright: signup → pay → upload → buyer message → lead appears
+4. ✅**Stripe** — webhook handler tests (mock events) → implement
+5. ✅**Onboarding** — subscription status checks → pay step UI
+6. ✅**File upload** — upload mutation + embedding pipeline (mock OpenAI)
+7. ✅**WhatsApp webhook** — inbound message handler (mock 360dialog)
+8. ✅**AI pipeline** — classification + vector search
+9. ✅**Leads dashboard** — Convex queries → UI
+10. ✅**E2E** — Playwright: signup → pay → upload → buyer message → lead appears
 
 ---
 
