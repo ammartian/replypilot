@@ -222,8 +222,8 @@ function ListingsUploader({ agentId }: { agentId: string }) {
     setUploading(true)
     try {
       for (const file of files) {
-        if (file.size > 10 * 1024 * 1024) {
-          setError(`${file.name} exceeds 10MB limit`)
+        if (file.size > 15 * 1024 * 1024) {
+          setError(`${file.name} exceeds 15MB limit`)
           continue
         }
         const uploadUrl = await generateUploadUrl()
@@ -260,7 +260,7 @@ function ListingsUploader({ agentId }: { agentId: string }) {
         ) : (
           <>
             <p className="font-medium text-gray-600">Drop files here or click to browse</p>
-            <p className="text-sm text-gray-400 mt-1">PDF, Word, Excel, images — max 10MB each, up to 20 files</p>
+            <p className="text-sm text-gray-400 mt-1">PDF, Word, Excel, images — max 15MB each, up to 20 files</p>
           </>
         )}
       </label>
