@@ -65,7 +65,8 @@ export async function sendWhatsAppMessage({
   agentPhone?: string
 }): Promise<void> {
   const apiKey = process.env.DIALOG360_API_KEY
-  const url = `https://waba.360dialog.io/v1/messages`
+  const base = process.env.DIALOG360_BASE_URL ?? 'https://waba.360dialog.io'
+  const url = `${base}/v1/messages`
 
   await fetch(url, {
     method: 'POST',
