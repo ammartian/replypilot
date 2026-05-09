@@ -38,7 +38,12 @@ export async function POST(req: NextRequest) {
   }
 
   const blob = await fileRes.blob()
-  const text = await extractText(blob, fileType)
 
-  return NextResponse.json({ text })
+  try {
+    const text = await extractText(blob, fileType)
+    return NextResponse.json({ text })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }

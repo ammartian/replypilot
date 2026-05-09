@@ -26,7 +26,10 @@ export const processListing = action({
         body: JSON.stringify({ fileUrl, fileType: listing.fileType }),
       })
 
-      if (!extractRes.ok) throw new Error(`Text extraction failed: ${extractRes.status}`)
+      if (!extractRes.ok) {
+        const body = await extractRes.json().catch(() => ({}))
+        throw new Error(`Text extraction failed: ${extractRes.status} — ${body.error ?? 'unknown'}`)
+      }
       const { text } = await extractRes.json()
 
       if (!text?.trim()) {
