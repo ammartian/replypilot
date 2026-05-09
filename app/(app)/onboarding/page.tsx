@@ -1,7 +1,6 @@
 'use client'
 
-import { useQuery, useMutation } from 'convex/react'
-import { useAction } from 'convex/react'
+import { useQuery, useMutation, useAction } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -199,13 +198,13 @@ export default function OnboardingPage() {
       {step === 3 && (
         <Card>
           <CardHeader>
-            <CardTitle>Upload Your Listings</CardTitle>
+            <CardTitle>Add Your Listings</CardTitle>
             <CardDescription>
-              Upload property listing files (PDF, Word, Excel, images). The AI uses these to answer buyer questions.
+              Paste your property listing details below. The AI uses this to answer buyer questions accurately.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ListingsUploader agentId={agent!._id} />
+            <ListingsInput />
           </CardContent>
         </Card>
       )}
@@ -213,97 +212,95 @@ export default function OnboardingPage() {
   )
 }
 
-function ListingsUploader({ agentId }: { agentId: string }) {
-  const generateUploadUrl = useMutation(api.listings.generateUploadUrl)
-  const saveListingFile = useMutation(api.listings.saveListingFile)
-  const getStorageUrl = useAction(api.listings.getStorageUrl)
+const PLACEHOLDER = `Paste your property details here. Include for each listing:
+- Property name and location/area
+- Price or price range (e.g. RM 650,000 or RM 500k–800k)
+- Size in sqft and layout (bedrooms / bathrooms)
+- Property type (condo, landed, serviced apartment, commercial)
+- Status (ready to move in / under construction / completing Q3 2026)
+- Tenure (freehold / leasehold)
+- Key facilities and features
+- Developer name (optional)
+
+Separate multiple listings with a blank line or "---"
+
+Example:
+Residensi Parklane, KL City Centre
+Price: RM 650,000 | Size: 850 sqft | 2 bed 2 bath
+Type: Condo | Freehold | Ready to move in
+Facilities: Infinity pool, gym, 2 covered carparks
+Near Bukit Nanas LRT, 5 min to KLCC
+
+---
+
+Taman Setia Indah, Johor Bahru
+Price: RM 420,000 | Size: 1,400 sqft | 3 bed 2 bath
+Type: Double-storey terrace | Freehold | Ready
+Gated & guarded, near CIQ, schools within 1km`
+
+function ListingsInput() {
+  const processTextListing = useAction(api.listings.processTextListing)
   const listings = useQuery(api.listings.getListingsForAgent)
 
-  const [uploading, setUploading] = useState(false)
+  const [content, setContent] = useState('')
+  const [label, setLabel] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [extractResults, setExtractResults] = useState<Record<string, { ok: boolean; warn?: boolean; message: string }>>({})
+  const [success, setSuccess] = useState('')
 
-  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? [])
-    if (!files.length) return
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!content.trim()) return
     setError('')
-    setUploading(true)
+    setSuccess('')
+    setSubmitting(true)
     try {
-      for (const file of files) {
-        if (file.size > 15 * 1024 * 1024) {
-          setError(`${file.name} exceeds 15MB limit`)
-          continue
-        }
-
-        // Upload to Convex storage first to get a URL we can pass to extract-text
-        // (avoids Vercel's 4.5MB serverless body limit when sending raw file bytes)
-        setExtractResults((prev) => ({ ...prev, [file.name]: { ok: false, message: 'Uploading...' } }))
-        const uploadUrl = await generateUploadUrl()
-        const uploadResult = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: { 'content-type': file.type },
-          body: file,
-        })
-        const { storageId } = await uploadResult.json()
-
-        setExtractResults((prev) => ({ ...prev, [file.name]: { ok: false, message: 'Extracting...' } }))
-        const fileUrl = await getStorageUrl({ storageId })
-        const extractRes = await fetch('/api/listings/extract-text', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ fileUrl, fileType: file.type }),
-        })
-        const extractData = await extractRes.json()
-        if (!extractRes.ok) {
-          setExtractResults((prev) => ({ ...prev, [file.name]: { ok: false, message: extractData.error ?? 'Extraction failed' } }))
-          continue
-        }
-        if (extractData.warning) {
-          setExtractResults((prev) => ({ ...prev, [file.name]: { ok: true, warn: true, message: extractData.warning } }))
-        } else {
-          setExtractResults((prev) => ({ ...prev, [file.name]: { ok: true, message: `✓ ${extractData.chars} chars extracted` } }))
-        }
-
-        await saveListingFile({
-          fileName: file.name,
-          fileType: file.type,
-          storageId,
-        })
-      }
+      await processTextListing({
+        label: label.trim() || `Listings ${new Date().toLocaleDateString('en-MY')}`,
+        content: content.trim(),
+      })
+      setSuccess('✓ Listings saved and indexed — the AI can now answer buyer questions.')
+      setContent('')
+      setLabel('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save listings')
     } finally {
-      setUploading(false)
+      setSubmitting(false)
     }
   }
 
   return (
     <div className="space-y-4">
-      <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-8 text-center hover:border-blue-400 transition-colors">
-        <input
-          type="file"
-          multiple
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-          className="sr-only"
-          onChange={handleFiles}
-          disabled={uploading}
-        />
-        {uploading ? (
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        ) : (
-          <>
-            <p className="font-medium text-gray-600">Drop files here or click to browse</p>
-            <p className="text-sm text-gray-400 mt-1">PDF, Word, Excel, images — max 15MB each, up to 20 files</p>
-          </>
-        )}
-      </label>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {Object.entries(extractResults).map(([name, result]) => (
-        <p
-          key={name}
-          className={`text-sm ${result.warn ? 'text-yellow-700' : result.ok ? 'text-green-600' : 'text-red-600'}`}
-        >
-          {name}: {result.message}
-        </p>
-      ))}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="listing-label">Label (optional)</Label>
+          <Input
+            id="listing-label"
+            placeholder="e.g. KL Condos May 2026"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="listing-content">Listing Details</Label>
+          <textarea
+            id="listing-content"
+            rows={14}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 resize-y font-mono"
+            placeholder={PLACEHOLDER}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        {success && <p className="text-sm text-green-600">{success}</p>}
+        <Button type="submit" disabled={submitting || !content.trim()}>
+          {submitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Indexing…</> : 'Save & Index Listings'}
+        </Button>
+      </form>
+
       {listings && listings.length > 0 && (
         <ul className="divide-y rounded-lg border">
           {listings.map((l: { _id: string; fileName: string; status: string }) => (

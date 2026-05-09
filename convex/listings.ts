@@ -2,6 +2,8 @@ import { mutation, query, action } from './_generated/server'
 import { v } from 'convex/values'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { api } from './_generated/api'
+import { chunkText } from '../lib/chunker'
+import { generateEmbeddings } from '../lib/embeddings'
 
 export const generateUploadUrl = mutation({
   args: {},
@@ -94,6 +96,63 @@ export const getStorageUrl = action({
     const userId = await ctx.auth.getUserIdentity()
     if (!userId) throw new Error('Not authenticated')
     return ctx.storage.getUrl(storageId)
+  },
+})
+
+export const processTextListing = action({
+  args: {
+    label: v.string(),
+    content: v.string(),
+  },
+  handler: async (ctx, { label, content }) => {
+    const userId = await ctx.auth.getUserIdentity()
+    if (!userId) throw new Error('Not authenticated')
+
+    const agent = await ctx.runQuery(api.agents.getAgent)
+    if (!agent) throw new Error('Agent not found')
+
+    const listingId = await ctx.runMutation(api.listings.insertListing, {
+      agentId: agent._id,
+      fileName: label,
+      fileType: 'text/plain',
+    })
+
+    try {
+      const chunks = chunkText(content, 800, { overlap: true })
+      const embeddings = await generateEmbeddings(chunks)
+
+      await ctx.runMutation(api.listingChunks.deleteChunksByListing, { listingId })
+
+      for (let i = 0; i < chunks.length; i++) {
+        await ctx.runMutation(api.listingChunks.saveChunk, {
+          agentId: agent._id,
+          listingId,
+          text: chunks[i],
+          embedding: embeddings[i],
+        })
+      }
+
+      await ctx.runMutation(api.listings.updateListingStatus, { listingId, status: 'ready' })
+    } catch (err) {
+      await ctx.runMutation(api.listings.updateListingStatus, { listingId, status: 'error' })
+      throw err
+    }
+  },
+})
+
+export const insertListing = mutation({
+  args: {
+    agentId: v.id('agents'),
+    fileName: v.string(),
+    fileType: v.string(),
+  },
+  handler: async (ctx, { agentId, fileName, fileType }) => {
+    return ctx.db.insert('listings', {
+      agentId,
+      fileName,
+      fileType,
+      status: 'processing',
+    })
   },
 })
 
