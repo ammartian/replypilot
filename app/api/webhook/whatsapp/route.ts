@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
 
   try {
   const { agentPhone, buyerPhone, buyerName, messageText, messageId } = parsed
-  console.log('[webhook] received messageId:', messageId, '| text:', messageText.slice(0, 40))
   const convex = getConvex()
 
   // Look up agent
@@ -57,9 +56,7 @@ export async function POST(req: NextRequest) {
     content: messageText,
     messageId,
   })
-  console.log('[webhook] saveBuyerMessageIdempotent result:', savedId, '| messageId:', messageId)
   if (savedId === null) {
-    console.log('[webhook] duplicate — skipping processing for messageId:', messageId)
     return NextResponse.json({ ok: true })
   }
 
