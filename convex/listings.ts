@@ -1,4 +1,4 @@
-import { mutation, query } from './_generated/server'
+import { mutation, query, action } from './_generated/server'
 import { v } from 'convex/values'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { api } from './_generated/api'
@@ -85,6 +85,15 @@ export const getListingById = query({
   args: { listingId: v.id('listings') },
   handler: async (ctx, { listingId }) => {
     return ctx.db.get(listingId)
+  },
+})
+
+export const getStorageUrl = action({
+  args: { storageId: v.id('_storage') },
+  handler: async (ctx, { storageId }) => {
+    const userId = await ctx.auth.getUserIdentity()
+    if (!userId) throw new Error('Not authenticated')
+    return ctx.storage.getUrl(storageId)
   },
 })
 

@@ -210,6 +210,7 @@ export default function OnboardingPage() {
 function ListingsUploader({ agentId }: { agentId: string }) {
   const generateUploadUrl = useMutation(api.listings.generateUploadUrl)
   const saveListingFile = useMutation(api.listings.saveListingFile)
+  const getStorageUrl = useAction(api.listings.getStorageUrl)
   const listings = useQuery(api.listings.getListingsForAgent)
 
   const [uploading, setUploading] = useState(false)
@@ -228,11 +229,24 @@ function ListingsUploader({ agentId }: { agentId: string }) {
           continue
         }
 
-        // Test extraction before uploading
+        // Upload to Convex storage first to get a URL we can pass to extract-text
+        // (avoids Vercel's 4.5MB serverless body limit when sending raw file bytes)
+        setExtractResults((prev) => ({ ...prev, [file.name]: { ok: false, message: 'Uploading...' } }))
+        const uploadUrl = await generateUploadUrl()
+        const uploadResult = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: { 'content-type': file.type },
+          body: file,
+        })
+        const { storageId } = await uploadResult.json()
+
         setExtractResults((prev) => ({ ...prev, [file.name]: { ok: false, message: 'Extracting...' } }))
-        const form = new FormData()
-        form.append('file', file)
-        const extractRes = await fetch('/api/listings/extract-text', { method: 'POST', body: form })
+        const fileUrl = await getStorageUrl({ storageId })
+        const extractRes = await fetch('/api/listings/extract-text', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ fileUrl, fileType: file.type }),
+        })
         const extractData = await extractRes.json()
         if (!extractRes.ok) {
           setExtractResults((prev) => ({ ...prev, [file.name]: { ok: false, message: extractData.error ?? 'Extraction failed' } }))
@@ -240,13 +254,6 @@ function ListingsUploader({ agentId }: { agentId: string }) {
         }
         setExtractResults((prev) => ({ ...prev, [file.name]: { ok: true, message: `✓ ${extractData.chars} chars extracted` } }))
 
-        const uploadUrl = await generateUploadUrl()
-        const result = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: { 'content-type': file.type },
-          body: file,
-        })
-        const { storageId } = await result.json()
         await saveListingFile({
           fileName: file.name,
           fileType: file.type,
