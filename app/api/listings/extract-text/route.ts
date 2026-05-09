@@ -3,9 +3,13 @@ import { NextRequest, NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-async function extractTextFromPdf(buffer: Buffer): Promise<string> {
+// pdf2json can hang indefinitely on scanned/image-only PDFs.
+// Race against a 45s timeout and return empty string so the caller
+// can treat it as an image-only file rather than crashing.
+async function extractTextFromPdf(buffer: Buffer): Promise<{ text: string; timedOut: boolean }> {
   const PDFParser = (await import('pdf2json')).default
-  return new Promise((resolve, reject) => {
+
+  const parse = new Promise<string>((resolve, reject) => {
     const parser = new PDFParser()
     parser.on('pdfParser_dataReady', (data: { Pages: Array<{ Texts: Array<{ R: Array<{ T: string }> }> }> }) => {
       const text = data.Pages.flatMap((page) =>
@@ -13,15 +17,40 @@ async function extractTextFromPdf(buffer: Buffer): Promise<string> {
       ).join(' ')
       resolve(text)
     })
-    parser.on('pdfParser_dataError', (err: Error | { parserError: Error }) => reject('parserError' in err ? err.parserError : err))
+    parser.on('pdfParser_dataError', (err: Error | { parserError: Error }) =>
+      reject('parserError' in err ? err.parserError : err)
+    )
     parser.parseBuffer(buffer)
   })
+
+  const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 45_000))
+
+  const result = await Promise.race([parse, timeout])
+  if (result === 'timeout') return { text: '', timedOut: true }
+  return { text: result, timedOut: false }
 }
 
-async function extractText(blob: Blob, fileType: string): Promise<string> {
+async function extractText(
+  blob: Blob,
+  fileType: string,
+): Promise<{ text: string; warning?: string }> {
   if (fileType === 'application/pdf' || fileType.includes('pdf')) {
     const buffer = Buffer.from(await blob.arrayBuffer())
-    return extractTextFromPdf(buffer)
+    const { text, timedOut } = await extractTextFromPdf(buffer)
+    if (timedOut) {
+      return {
+        text: '',
+        warning:
+          'PDF parsing timed out — this is likely a scanned/image-only PDF. The file was saved but the AI will not be able to search its content. Convert to a text-based PDF or use Word/Excel instead.',
+      }
+    }
+    if (!text.trim()) {
+      return {
+        text: '',
+        warning: 'No text found in PDF — may be a scanned/image-only file. The AI will not be able to search its content.',
+      }
+    }
+    return { text }
   }
 
   if (
@@ -32,10 +61,10 @@ async function extractText(blob: Blob, fileType: string): Promise<string> {
     const { default: mammoth } = await import('mammoth')
     const buffer = Buffer.from(await blob.arrayBuffer())
     const result = await mammoth.extractRawText({ buffer })
-    return result.value
+    return { text: result.value }
   }
 
-  return blob.text()
+  return { text: await blob.text() }
 }
 
 export async function POST(req: NextRequest) {
@@ -60,8 +89,8 @@ export async function POST(req: NextRequest) {
       fileType = ft
     }
 
-    const text = await extractText(blob, fileType)
-    return NextResponse.json({ text, chars: text.length })
+    const { text, warning } = await extractText(blob, fileType)
+    return NextResponse.json({ text, chars: text.length, warning })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return NextResponse.json({ error: message }, { status: 500 })

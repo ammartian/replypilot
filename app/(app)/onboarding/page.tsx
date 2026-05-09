@@ -221,7 +221,7 @@ function ListingsUploader({ agentId }: { agentId: string }) {
 
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
-  const [extractResults, setExtractResults] = useState<Record<string, { ok: boolean; message: string }>>({})
+  const [extractResults, setExtractResults] = useState<Record<string, { ok: boolean; warn?: boolean; message: string }>>({})
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -258,7 +258,11 @@ function ListingsUploader({ agentId }: { agentId: string }) {
           setExtractResults((prev) => ({ ...prev, [file.name]: { ok: false, message: extractData.error ?? 'Extraction failed' } }))
           continue
         }
-        setExtractResults((prev) => ({ ...prev, [file.name]: { ok: true, message: `✓ ${extractData.chars} chars extracted` } }))
+        if (extractData.warning) {
+          setExtractResults((prev) => ({ ...prev, [file.name]: { ok: true, warn: true, message: extractData.warning } }))
+        } else {
+          setExtractResults((prev) => ({ ...prev, [file.name]: { ok: true, message: `✓ ${extractData.chars} chars extracted` } }))
+        }
 
         await saveListingFile({
           fileName: file.name,
@@ -293,7 +297,10 @@ function ListingsUploader({ agentId }: { agentId: string }) {
       </label>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {Object.entries(extractResults).map(([name, result]) => (
-        <p key={name} className={`text-sm ${result.ok ? 'text-green-600' : 'text-red-600'}`}>
+        <p
+          key={name}
+          className={`text-sm ${result.warn ? 'text-yellow-700' : result.ok ? 'text-green-600' : 'text-red-600'}`}
+        >
           {name}: {result.message}
         </p>
       ))}
