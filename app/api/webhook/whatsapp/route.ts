@@ -13,12 +13,23 @@ function getConvex() {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const parsed = parseWebhookPayload(body)
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
 
-  // Silently ack anything we don't handle
+  let parsed: ReturnType<typeof parseWebhookPayload>
+  try {
+    parsed = parseWebhookPayload(body as Parameters<typeof parseWebhookPayload>[0])
+  } catch (err) {
+    return NextResponse.json({ error: 'Parse error', detail: String(err) }, { status: 400 })
+  }
+
   if (!parsed) return NextResponse.json({ ok: true })
 
+  try {
   const { agentPhone, buyerPhone, buyerName, messageText } = parsed
   const convex = getConvex()
 
@@ -98,4 +109,9 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[webhook/whatsapp]', message)
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
