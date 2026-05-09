@@ -39,22 +39,29 @@ async function extractText(blob: Blob, fileType: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const { fileUrl, fileType } = await req.json()
-
-  if (!fileUrl || !fileType) {
-    return NextResponse.json({ error: 'Missing fileUrl or fileType' }, { status: 400 })
-  }
-
-  const fileRes = await fetch(fileUrl)
-  if (!fileRes.ok) {
-    return NextResponse.json({ error: 'Failed to fetch file' }, { status: 502 })
-  }
-
-  const blob = await fileRes.blob()
-
   try {
+    let blob: Blob
+    let fileType: string
+
+    const contentType = req.headers.get('content-type') ?? ''
+
+    if (contentType.includes('multipart/form-data')) {
+      const form = await req.formData()
+      const file = form.get('file') as File | null
+      if (!file) return NextResponse.json({ error: 'Missing file' }, { status: 400 })
+      blob = file
+      fileType = file.type
+    } else {
+      const { fileUrl, fileType: ft } = await req.json()
+      if (!fileUrl || !ft) return NextResponse.json({ error: 'Missing fileUrl or fileType' }, { status: 400 })
+      const fileRes = await fetch(fileUrl)
+      if (!fileRes.ok) return NextResponse.json({ error: 'Failed to fetch file' }, { status: 502 })
+      blob = await fileRes.blob()
+      fileType = ft
+    }
+
     const text = await extractText(blob, fileType)
-    return NextResponse.json({ text })
+    return NextResponse.json({ text, chars: text.length })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return NextResponse.json({ error: message }, { status: 500 })

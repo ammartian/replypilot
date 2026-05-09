@@ -214,6 +214,7 @@ function ListingsUploader({ agentId }: { agentId: string }) {
 
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [extractResults, setExtractResults] = useState<Record<string, { ok: boolean; message: string }>>({})
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -226,6 +227,19 @@ function ListingsUploader({ agentId }: { agentId: string }) {
           setError(`${file.name} exceeds 15MB limit`)
           continue
         }
+
+        // Test extraction before uploading
+        setExtractResults((prev) => ({ ...prev, [file.name]: { ok: false, message: 'Extracting...' } }))
+        const form = new FormData()
+        form.append('file', file)
+        const extractRes = await fetch('/api/listings/extract-text', { method: 'POST', body: form })
+        const extractData = await extractRes.json()
+        if (!extractRes.ok) {
+          setExtractResults((prev) => ({ ...prev, [file.name]: { ok: false, message: extractData.error ?? 'Extraction failed' } }))
+          continue
+        }
+        setExtractResults((prev) => ({ ...prev, [file.name]: { ok: true, message: `✓ ${extractData.chars} chars extracted` } }))
+
         const uploadUrl = await generateUploadUrl()
         const result = await fetch(uploadUrl, {
           method: 'POST',
@@ -265,6 +279,11 @@ function ListingsUploader({ agentId }: { agentId: string }) {
         )}
       </label>
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {Object.entries(extractResults).map(([name, result]) => (
+        <p key={name} className={`text-sm ${result.ok ? 'text-green-600' : 'text-red-600'}`}>
+          {name}: {result.message}
+        </p>
+      ))}
       {listings && listings.length > 0 && (
         <ul className="divide-y rounded-lg border">
           {listings.map((l: { _id: string; fileName: string; status: string }) => (
