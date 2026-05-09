@@ -79,7 +79,8 @@ export async function runConversation({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1024,
     system: buildSystemPrompt(agentName, listingChunks),
-    messages,
+    // Prefill assistant turn with "{" to force raw JSON output, no markdown fences
+    messages: [...messages, { role: 'assistant', content: '{' }],
   })
 
   const textBlock = response.content.find((b) => b.type === 'text')
@@ -87,6 +88,10 @@ export async function runConversation({
     throw new Error('No text response from Claude')
   }
 
-  const parsed = JSON.parse(textBlock.text) as ConversationResult
+  // Strip markdown fences, then restore the prefilled "{" if Claude omitted it
+  let raw = textBlock.text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim()
+  if (!raw.startsWith('{')) raw = '{' + raw
+
+  const parsed = JSON.parse(raw) as ConversationResult
   return parsed
 }

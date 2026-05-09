@@ -103,6 +103,14 @@ describe('runConversation', () => {
     await expect(runConversation(BASE_ARGS)).rejects.toThrow()
   })
 
+  it('handles response wrapped in markdown code fences', async () => {
+    mockCreate.mockResolvedValue({
+      content: [makeTextBlock('```json\n{"reply":"Hi!","classification":"new","summary":null,"handoff":false}\n```')]
+    })
+    const result = await runConversation(BASE_ARGS)
+    expect(result.reply).toBe('Hi!')
+  })
+
   it('uses claude-haiku model', async () => {
     mockResponse(
       JSON.stringify({ reply: 'Ok', classification: 'new', summary: null, handoff: false })
