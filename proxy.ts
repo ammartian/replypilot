@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
   '/signup',
   '/api/webhook/whatsapp',
   '/api/webhook/stripe',
+  '/api/listings/extract-text',
 ])
 
 export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
