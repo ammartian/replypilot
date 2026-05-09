@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '@/convex/_generated/api'
+import type { Id } from '@/convex/_generated/dataModel'
 import type Stripe from 'stripe'
 
 export const runtime = 'nodejs'
@@ -31,7 +32,10 @@ export async function POST(req: NextRequest) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
       const plan = (session.metadata?.plan ?? 'plus') as 'plus' | 'pro'
+      const agentId = session.metadata?.agentId as Id<'agents'> | undefined
+      if (!agentId) throw new Error('Missing agentId in session metadata')
       await convex.mutation(api.agents.activateAgentSubscription, {
+        agentId,
         stripeCustomerId: session.customer as string,
         stripeSubscriptionId: session.subscription as string,
         plan,

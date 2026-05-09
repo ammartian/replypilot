@@ -81,7 +81,7 @@ describe('POST /api/webhook/stripe', () => {
       id: 'cs_test',
       customer: 'cus_123',
       subscription: 'sub_123',
-      metadata: { plan: 'plus' },
+      metadata: { agentId: 'agent_abc', plan: 'plus' },
       customer_details: { email: 'agent@test.com' },
     }
     mockConstructEvent.mockReturnValue(
@@ -94,6 +94,7 @@ describe('POST /api/webhook/stripe', () => {
     expect(mockMutation).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
+        agentId: 'agent_abc',
         stripeCustomerId: 'cus_123',
         stripeSubscriptionId: 'sub_123',
         plan: 'plus',

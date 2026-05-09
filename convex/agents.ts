@@ -43,18 +43,17 @@ export const getAgent = query({
 
 export const activateAgentSubscription = mutation({
   args: {
+    agentId: v.id('agents'),
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
     plan: v.union(v.literal('plus'), v.literal('pro')),
   },
-  handler: async (ctx, { stripeCustomerId, stripeSubscriptionId, plan }) => {
-    const agent = await ctx.db
-      .query('agents')
-      .withIndex('by_stripeCustomerId', (q) => q.eq('stripeCustomerId', stripeCustomerId))
-      .first()
-    if (!agent) throw new Error(`No agent found for customer ${stripeCustomerId}`)
+  handler: async (ctx, { agentId, stripeCustomerId, stripeSubscriptionId, plan }) => {
+    const agent = await ctx.db.get(agentId)
+    if (!agent) throw new Error(`No agent found for id ${agentId}`)
 
     await ctx.db.patch(agent._id, {
+      stripeCustomerId,
       stripeSubscriptionId,
       plan,
       status: 'active',
