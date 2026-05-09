@@ -2,13 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
+async function extractTextFromPdf(buffer: Buffer): Promise<string> {
+  const PDFParser = (await import('pdf2json')).default
+  return new Promise((resolve, reject) => {
+    const parser = new PDFParser()
+    parser.on('pdfParser_dataReady', (data: { Pages: Array<{ Texts: Array<{ R: Array<{ T: string }> }> }> }) => {
+      const text = data.Pages.flatMap((page) =>
+        page.Texts.flatMap((t) => t.R.map((r) => decodeURIComponent(r.T)))
+      ).join(' ')
+      resolve(text)
+    })
+    parser.on('pdfParser_dataError', (err: Error | { parserError: Error }) => reject('parserError' in err ? err.parserError : err))
+    parser.parseBuffer(buffer)
+  })
+}
+
 async function extractText(blob: Blob, fileType: string): Promise<string> {
   if (fileType === 'application/pdf' || fileType.includes('pdf')) {
-    const { PDFParse } = await import('pdf-parse')
     const buffer = Buffer.from(await blob.arrayBuffer())
-    const parser = new PDFParse({ data: buffer })
-    const result = await parser.getText()
-    return result.text
+    return extractTextFromPdf(buffer)
   }
 
   if (
