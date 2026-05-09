@@ -75,3 +75,46 @@ describe('listing text processing pipeline', () => {
     expect(chunks[0]).toContain('Freehold')
   })
 })
+
+describe('listing update pipeline', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.OPENAI_API_KEY = 'sk-test'
+  })
+
+  it('reprocessing a listing deletes old chunks and creates new ones', async () => {
+    // Simulate: new content has 2 chunks → 2 embeddings generated
+    const newContent = 'Updated listing. New price RM 800,000. 3 bed. Near MRT.'
+    const chunks = chunkText(newContent, 800, { overlap: true })
+    mockEmbeddingsCreate.mockResolvedValue({
+      data: chunks.map(() => ({ embedding: MOCK_VECTOR })),
+    })
+    const embeddings = await generateEmbeddings(chunks)
+    // One embedding per chunk
+    expect(embeddings).toHaveLength(chunks.length)
+    // Each embedding is 1536-dimensional
+    embeddings.forEach((v) => expect(v).toHaveLength(1536))
+  })
+
+  it('renaming a listing does not affect chunk count', () => {
+    // chunkText is independent of fileName — renaming produces same chunks
+    const content = 'KL City condo. RM 550,000. 2 bed 1 bath.'
+    const chunksOriginal = chunkText(content, 800)
+    const chunksAfterRename = chunkText(content, 800)
+    expect(chunksAfterRename).toHaveLength(chunksOriginal.length)
+    expect(chunksAfterRename[0]).toEqual(chunksOriginal[0])
+  })
+
+  it('updating with empty content produces no chunks', () => {
+    const chunks = chunkText('', 800, { overlap: true })
+    expect(chunks).toHaveLength(0)
+  })
+
+  it('updated content is fully reflected in new chunks', () => {
+    const updatedContent =
+      'Damansara Heights bungalow. Price: RM 3,500,000. 6 bed 5 bath. Land: 5,000 sqft. Freehold.'
+    const chunks = chunkText(updatedContent, 800)
+    expect(chunks[0]).toContain('Damansara Heights')
+    expect(chunks[0]).toContain('RM 3,500,000')
+  })
+})

@@ -30,6 +30,7 @@ export default defineSchema({
     fileType: v.string(),
     storageId: v.optional(v.id('_storage')),
     status: v.union(v.literal('processing'), v.literal('ready'), v.literal('error')),
+    content: v.optional(v.string()),
   }).index('by_agentId', ['agentId']),
 
   listingChunks: defineTable({
@@ -68,7 +69,9 @@ export default defineSchema({
     leadId: v.id('leads'),
     role: v.union(v.literal('buyer'), v.literal('ai')),
     content: v.string(),
+    messageId: v.optional(v.string()),
   })
     .index('by_leadId', ['leadId'])
-    .index('by_agentId', ['agentId']),
+    .index('by_agentId', ['agentId'])
+    .index('by_messageId', ['messageId']),
 })

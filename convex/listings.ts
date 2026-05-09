@@ -115,6 +115,7 @@ export const processTextListing = action({
       agentId: agent._id,
       fileName: label,
       fileType: 'text/plain',
+      content,
     })
 
     try {
@@ -145,13 +146,15 @@ export const insertListing = mutation({
     agentId: v.id('agents'),
     fileName: v.string(),
     fileType: v.string(),
+    content: v.optional(v.string()),
   },
-  handler: async (ctx, { agentId, fileName, fileType }) => {
+  handler: async (ctx, { agentId, fileName, fileType, content }) => {
     return ctx.db.insert('listings', {
       agentId,
       fileName,
       fileType,
       status: 'processing',
+      content,
     })
   },
 })
@@ -163,5 +166,83 @@ export const updateListingStatus = mutation({
   },
   handler: async (ctx, { listingId, status }) => {
     await ctx.db.patch(listingId, { status })
+  },
+})
+
+export const updateListingName = mutation({
+  args: {
+    listingId: v.id('listings'),
+    fileName: v.string(),
+  },
+  handler: async (ctx, { listingId, fileName }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('Not authenticated')
+    await ctx.db.patch(listingId, { fileName })
+  },
+})
+
+export const updateListingContent = mutation({
+  args: {
+    listingId: v.id('listings'),
+    content: v.string(),
+  },
+  handler: async (ctx, { listingId, content }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('Not authenticated')
+    await ctx.db.patch(listingId, { content })
+  },
+})
+
+export const deleteListing = mutation({
+  args: {
+    listingId: v.id('listings'),
+  },
+  handler: async (ctx, { listingId }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('Not authenticated')
+    const chunks = await ctx.db
+      .query('listingChunks')
+      .withIndex('by_listingId', (q) => q.eq('listingId', listingId))
+      .collect()
+    await Promise.all(chunks.map((c) => ctx.db.delete(c._id)))
+    await ctx.db.delete(listingId)
+  },
+})
+
+export const reprocessListingContent = action({
+  args: {
+    listingId: v.id('listings'),
+    content: v.string(),
+  },
+  handler: async (ctx, { listingId, content }) => {
+    const userId = await ctx.auth.getUserIdentity()
+    if (!userId) throw new Error('Not authenticated')
+
+    const agent = await ctx.runQuery(api.agents.getAgent)
+    if (!agent) throw new Error('Agent not found')
+
+    await ctx.runMutation(api.listings.updateListingStatus, { listingId, status: 'processing' })
+    await ctx.runMutation(api.listings.updateListingContent, { listingId, content })
+
+    try {
+      const chunks = chunkText(content, 800, { overlap: true })
+      const embeddings = await generateEmbeddings(chunks)
+
+      await ctx.runMutation(api.listingChunks.deleteChunksByListing, { listingId })
+
+      for (let i = 0; i < chunks.length; i++) {
+        await ctx.runMutation(api.listingChunks.saveChunk, {
+          agentId: agent._id,
+          listingId,
+          text: chunks[i],
+          embedding: embeddings[i],
+        })
+      }
+
+      await ctx.runMutation(api.listings.updateListingStatus, { listingId, status: 'ready' })
+    } catch (err) {
+      await ctx.runMutation(api.listings.updateListingStatus, { listingId, status: 'error' })
+      throw err
+    }
   },
 })

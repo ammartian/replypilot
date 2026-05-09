@@ -106,6 +106,7 @@ describe('POST /api/webhook/whatsapp', () => {
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT) // getAgentByWhatsappNumber
       .mockResolvedValueOnce([])            // getMessagesForLead
+    // default mockMutation returns 'lead_123' (truthy) for all calls → not a duplicate
     const res = await POST(makeRequest(DIALOG360_PAYLOAD))
     expect(res.status).toBe(200)
     expect(mockSendMessage).toHaveBeenCalledWith(
@@ -114,6 +115,17 @@ describe('POST /api/webhook/whatsapp', () => {
         text: expect.any(String),
       })
     )
+  })
+
+  it('returns 200 and skips processing for duplicate messageId', async () => {
+    mockQuery.mockResolvedValueOnce(ACTIVE_AGENT) // getAgentByWhatsappNumber
+    mockMutation
+      .mockResolvedValueOnce('lead_123') // getOrCreateLead
+      .mockResolvedValueOnce(null)        // saveBuyerMessageIdempotent → duplicate, returns null
+    const res = await POST(makeRequest(DIALOG360_PAYLOAD))
+    expect(res.status).toBe(200)
+    expect(mockSendMessage).not.toHaveBeenCalled()
+    expect(mockRunConversation).not.toHaveBeenCalled()
   })
 
   it('returns 200 silently when agent not found', async () => {

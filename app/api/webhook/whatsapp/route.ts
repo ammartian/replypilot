@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
   if (!parsed) return NextResponse.json({ ok: true })
 
   try {
-  const { agentPhone, buyerPhone, buyerName, messageText } = parsed
+  const { agentPhone, buyerPhone, buyerName, messageText, messageId } = parsed
+  console.log('[webhook] received messageId:', messageId, '| text:', messageText.slice(0, 40))
   const convex = getConvex()
 
   // Look up agent
@@ -48,13 +49,19 @@ export async function POST(req: NextRequest) {
     buyerPhone,
   })
 
-  // Save buyer message
-  await convex.mutation(api.messages.saveMessage, {
+  // Atomically save buyer message — returns null if messageId already exists (duplicate webhook).
+  // A single mutation eliminates the race condition a query+mutation pair would have.
+  const savedId = await convex.mutation(api.messages.saveBuyerMessageIdempotent, {
     agentId: agent._id as Id<'agents'>,
     leadId: leadId as Id<'leads'>,
-    role: 'buyer',
     content: messageText,
+    messageId,
   })
+  console.log('[webhook] saveBuyerMessageIdempotent result:', savedId, '| messageId:', messageId)
+  if (savedId === null) {
+    console.log('[webhook] duplicate — skipping processing for messageId:', messageId)
+    return NextResponse.json({ ok: true })
+  }
 
   // Fetch conversation history
   const history = await convex.query(api.messages.getMessagesForLead, {

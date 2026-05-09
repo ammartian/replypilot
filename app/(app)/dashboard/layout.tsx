@@ -6,7 +6,7 @@ import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { Button } from '@/components/ui/button'
-import { LayoutDashboard, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Settings, LogOut, FileText } from 'lucide-react'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -15,6 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const nav = [
     { href: '/dashboard', label: 'Leads', icon: LayoutDashboard },
+    { href: '/dashboard/listings', label: 'Listings', icon: FileText },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ]
 
