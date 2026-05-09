@@ -8,10 +8,16 @@
  * @module
  */
 
+import type * as agents from "../agents.js";
 import type * as auth from "../auth.js";
 import type * as constants from "../constants.js";
 import type * as http from "../http.js";
+import type * as leads from "../leads.js";
 import type * as lib_classify from "../lib/classify.js";
+import type * as listingChunks from "../listingChunks.js";
+import type * as listings from "../listings.js";
+import type * as messages from "../messages.js";
+import type * as pipeline from "../pipeline.js";
 
 import type {
   ApiFromModules,
@@ -20,10 +26,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agents: typeof agents;
   auth: typeof auth;
   constants: typeof constants;
   http: typeof http;
+  leads: typeof leads;
   "lib/classify": typeof lib_classify;
+  listingChunks: typeof listingChunks;
+  listings: typeof listings;
+  messages: typeof messages;
+  pipeline: typeof pipeline;
 }>;
 
 /**

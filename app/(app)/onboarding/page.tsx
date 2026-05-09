@@ -267,7 +267,7 @@ function ListingsUploader({ agentId }: { agentId: string }) {
       {error && <p className="text-sm text-red-600">{error}</p>}
       {listings && listings.length > 0 && (
         <ul className="divide-y rounded-lg border">
-          {listings.map((l) => (
+          {listings.map((l: { _id: string; fileName: string; status: string }) => (
             <li key={l._id} className="flex items-center justify-between px-4 py-2.5 text-sm">
               <span className="truncate max-w-xs">{l.fileName}</span>
               <span

@@ -18,7 +18,7 @@ describe('validateSignupInput', () => {
       password: 'password123',
     })
     expect(result.ok).toBe(false)
-    expect(result.errors?.name).toBeDefined()
+    if (!result.ok) expect(result.errors.name).toBeDefined()
   })
 
   it('rejects invalid email', () => {
@@ -28,7 +28,7 @@ describe('validateSignupInput', () => {
       password: 'password123',
     })
     expect(result.ok).toBe(false)
-    expect(result.errors?.email).toBeDefined()
+    if (!result.ok) expect(result.errors.email).toBeDefined()
   })
 
   it('rejects password shorter than 8 chars', () => {
@@ -38,7 +38,7 @@ describe('validateSignupInput', () => {
       password: 'short',
     })
     expect(result.ok).toBe(false)
-    expect(result.errors?.password).toBeDefined()
+    if (!result.ok) expect(result.errors.password).toBeDefined()
   })
 
   it('trims whitespace from name and email', () => {
@@ -67,12 +67,12 @@ describe('validateLoginInput', () => {
   it('rejects empty email', () => {
     const result = validateLoginInput({ email: '', password: 'password123' })
     expect(result.ok).toBe(false)
-    expect(result.errors?.email).toBeDefined()
+    if (!result.ok) expect(result.errors.email).toBeDefined()
   })
 
   it('rejects empty password', () => {
     const result = validateLoginInput({ email: 'ahmad@example.com', password: '' })
     expect(result.ok).toBe(false)
-    expect(result.errors?.password).toBeDefined()
+    if (!result.ok) expect(result.errors.password).toBeDefined()
   })
 })

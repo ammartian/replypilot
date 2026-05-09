@@ -6,10 +6,11 @@ import { generateEmbeddings } from '../lib/embeddings'
 
 async function extractText(blob: Blob, fileType: string): Promise<string> {
   if (fileType === 'application/pdf' || fileType.includes('pdf')) {
-    const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js')
+    const { PDFParse } = await import('pdf-parse')
     const buffer = Buffer.from(await blob.arrayBuffer())
-    const data = await pdfParse(buffer)
-    return data.text
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    return result.text
   }
 
   if (

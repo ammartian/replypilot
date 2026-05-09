@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   let listingChunks: { text: string }[] = []
   try {
     const embedding = await generateEmbedding(messageText)
-    listingChunks = await convex.query(api.listingChunks.searchChunks, {
+    listingChunks = await convex.action(api.listingChunks.searchChunks, {
       agentId: agent._id as Id<'agents'>,
       embedding,
       limit: 5,
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
   // Run AI conversation
   const result = await runConversation({
     agentName: agent.name,
-    history: history.map((m) => ({ role: m.role, content: m.content })),
+    history: history.map((m: { role: 'buyer' | 'ai'; content: string }) => ({ role: m.role, content: m.content })),
     newMessage: messageText,
     listingChunks,
   })

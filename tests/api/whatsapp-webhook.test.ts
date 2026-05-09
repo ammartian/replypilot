@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 
 const mockMutation = vi.hoisted(() => vi.fn())
 const mockQuery = vi.hoisted(() => vi.fn())
+const mockAction = vi.hoisted(() => vi.fn())
 const mockRunConversation = vi.hoisted(() => vi.fn())
 const mockSendMessage = vi.hoisted(() => vi.fn())
 const mockGenerateEmbedding = vi.hoisted(() => vi.fn())
@@ -12,6 +13,7 @@ vi.mock('convex/browser', () => ({
   ConvexHttpClient: class {
     query = mockQuery
     mutation = mockMutation
+    action = mockAction
   },
 }))
 
@@ -88,9 +90,8 @@ describe('POST /api/webhook/whatsapp', () => {
     process.env.NEXT_PUBLIC_CONVEX_URL = 'https://test.convex.cloud'
     process.env.DIALOG360_API_KEY = 'test-api-key'
 
-    // Default: return null for all queries (tests override as needed)
     mockQuery.mockResolvedValue(null)
-
+    mockAction.mockResolvedValue([])
     mockMutation.mockResolvedValue('lead_123')
     mockRunConversation.mockResolvedValue({
       reply: 'Thanks for your interest! Let me ask a few questions.',
@@ -105,7 +106,6 @@ describe('POST /api/webhook/whatsapp', () => {
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT) // getAgentByWhatsappNumber
       .mockResolvedValueOnce([])            // getMessagesForLead
-      .mockResolvedValueOnce([])            // searchChunks
     const res = await POST(makeRequest(DIALOG360_PAYLOAD))
     expect(res.status).toBe(200)
     expect(mockSendMessage).toHaveBeenCalledWith(
@@ -142,16 +142,13 @@ describe('POST /api/webhook/whatsapp', () => {
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT)
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
     await POST(makeRequest(DIALOG360_PAYLOAD))
-    // getOrCreateLead + saveBuyerMessage + saveAiMessage + updateLead = 4 mutations
     expect(mockMutation.mock.calls.length).toBeGreaterThanOrEqual(3)
   })
 
   it('does not reply when AI triggers handoff (hot/warm lead)', async () => {
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT)
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
     mockRunConversation.mockResolvedValue({
       reply: "Let me connect you with Ahmad who can help you further. They'll be in touch shortly!",
@@ -161,11 +158,9 @@ describe('POST /api/webhook/whatsapp', () => {
     })
     const res = await POST(makeRequest(DIALOG360_PAYLOAD))
     expect(res.status).toBe(200)
-    // Still sends the handoff message to buyer
     expect(mockSendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ to: '60222222222' })
     )
-    // Also notifies agent
     expect(mockSendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ to: ACTIVE_AGENT.whatsappNumber })
     )
