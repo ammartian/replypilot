@@ -21,7 +21,7 @@ export const createAgent = mutation({
       userId,
       name,
       email,
-      plan: 'starter',
+      plan: 'plus',
       status: 'pending',
       whatsappStatus: 'pending',
       subscriptionStatus: 'inactive',
@@ -45,7 +45,7 @@ export const activateAgentSubscription = mutation({
   args: {
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
-    plan: v.union(v.literal('starter'), v.literal('pro')),
+    plan: v.union(v.literal('plus'), v.literal('pro')),
   },
   handler: async (ctx, { stripeCustomerId, stripeSubscriptionId, plan }) => {
     const agent = await ctx.db

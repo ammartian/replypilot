@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
-      const plan = (session.metadata?.plan ?? 'starter') as 'starter' | 'pro'
+      const plan = (session.metadata?.plan ?? 'plus') as 'plus' | 'pro'
       await convex.mutation(api.agents.activateAgentSubscription, {
         stripeCustomerId: session.customer as string,
         stripeSubscriptionId: session.subscription as string,

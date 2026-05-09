@@ -43,7 +43,7 @@ export default function Home() {
 
         {/* Social proof / plan hint */}
         <p className="text-sm text-zinc-400">
-          From RM 300/month &middot; No setup fee &middot; Cancel anytime
+          From RM 299/month &middot; No setup fee &middot; Cancel anytime
         </p>
       </main>
 

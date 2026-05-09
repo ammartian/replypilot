@@ -46,7 +46,7 @@ const ACTIVE_AGENT = {
   userId: 'user_123',
   name: 'Ahmad',
   email: 'ahmad@test.com',
-  plan: 'starter',
+  plan: 'plus',
   status: 'active',
   subscriptionStatus: 'active',
   whatsappNumber: '601111111111',

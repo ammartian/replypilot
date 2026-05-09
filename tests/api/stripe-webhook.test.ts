@@ -81,7 +81,7 @@ describe('POST /api/webhook/stripe', () => {
       id: 'cs_test',
       customer: 'cus_123',
       subscription: 'sub_123',
-      metadata: { plan: 'starter' },
+      metadata: { plan: 'plus' },
       customer_details: { email: 'agent@test.com' },
     }
     mockConstructEvent.mockReturnValue(
@@ -96,7 +96,7 @@ describe('POST /api/webhook/stripe', () => {
       expect.objectContaining({
         stripeCustomerId: 'cus_123',
         stripeSubscriptionId: 'sub_123',
-        plan: 'starter',
+        plan: 'plus',
       })
     )
   })

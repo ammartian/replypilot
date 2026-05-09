@@ -8,7 +8,7 @@ export default defineSchema({
     userId: v.string(),
     name: v.string(),
     email: v.string(),
-    plan: v.union(v.literal('starter'), v.literal('pro')),
+    plan: v.union(v.literal('plus'), v.literal('pro')),
     status: v.union(v.literal('active'), v.literal('inactive'), v.literal('pending')),
     whatsappNumber: v.optional(v.string()),
     whatsappStatus: v.union(v.literal('pending'), v.literal('connected')),

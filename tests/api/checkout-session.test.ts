@@ -43,7 +43,7 @@ const mockAgent = {
   userId: 'user_123',
   name: 'Test Agent',
   email: 'agent@test.com',
-  plan: 'starter',
+  plan: 'plus',
   status: 'pending',
   subscriptionStatus: 'inactive',
   whatsappStatus: 'pending',
@@ -53,32 +53,32 @@ describe('POST /api/checkout/create-session', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.NEXT_PUBLIC_CONVEX_URL = 'https://test.convex.cloud'
-    process.env.STRIPE_STARTER_PRICE_ID = 'price_starter_test'
+    process.env.STRIPE_PLUS_PRICE_ID = 'price_plus_test'
     process.env.STRIPE_PRO_PRICE_ID = 'price_pro_test'
     process.env.SITE_URL = 'http://localhost:3000'
   })
 
   it('returns 401 when agent not found', async () => {
     mockConvexQuery.mockResolvedValue(null)
-    const res = await POST(makeRequest({ plan: 'starter' }))
+    const res = await POST(makeRequest({ plan: 'plus' }))
     expect(res.status).toBe(401)
   })
 
-  it('creates checkout session for starter plan', async () => {
+  it('creates checkout session for plus plan', async () => {
     mockConvexQuery.mockResolvedValue(mockAgent)
     mockConvexMutation.mockResolvedValue(null)
     mockCheckoutCreate.mockResolvedValue({ url: 'https://checkout.stripe.com/test' })
 
-    const res = await POST(makeRequest({ plan: 'starter' }))
+    const res = await POST(makeRequest({ plan: 'plus' }))
     expect(res.status).toBe(200)
 
     const json = await res.json()
     expect(json.url).toBe('https://checkout.stripe.com/test')
     expect(mockCheckoutCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        line_items: [expect.objectContaining({ price: 'price_starter_test' })],
+        line_items: [expect.objectContaining({ price: 'price_plus_test' })],
         mode: 'subscription',
-        metadata: expect.objectContaining({ plan: 'starter' }),
+        metadata: expect.objectContaining({ plan: 'plus' }),
       })
     )
   })
@@ -109,7 +109,7 @@ describe('POST /api/checkout/create-session', () => {
     mockConvexMutation.mockResolvedValue(null)
     mockCheckoutCreate.mockResolvedValue({ url: null })
 
-    const res = await POST(makeRequest({ plan: 'starter' }))
+    const res = await POST(makeRequest({ plan: 'plus' }))
     expect(res.status).toBe(500)
   })
 })

@@ -36,14 +36,14 @@ test.describe('Agent signup flow', () => {
     await page.route('/api/checkout/create-session', async (route) => {
       checkoutCalled = true
       const body = route.request().postDataJSON()
-      expect(['starter', 'pro']).toContain(body.plan)
+      expect(['plus', 'pro']).toContain(body.plan)
       await route.fulfill({ json: { url: 'https://checkout.stripe.com/pay/test_session' } })
     })
 
     // Must be authenticated for onboarding to resolve Convex queries
     await signUp(page, 'E2E Checkout Agent', uniqueEmail())
 
-    await page.getByRole('button', { name: 'Get Starter' }).click()
+    await page.getByRole('button', { name: 'Get Plus' }).click()
     await expect.poll(() => checkoutCalled, { timeout: 10_000 }).toBe(true)
   })
 
@@ -52,7 +52,7 @@ test.describe('Agent signup flow', () => {
 
     // Already on /onboarding — verify the subscribe step is shown
     await expect(page.getByText('Choose your plan')).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByRole('button', { name: 'Get Starter' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Get Plus' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Get Pro' })).toBeVisible()
   })
 })

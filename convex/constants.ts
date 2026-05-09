@@ -16,5 +16,5 @@ export type ListingStatus = typeof LISTING_STATUSES[number]
 export const AGENT_STATUSES = ['active', 'inactive', 'pending'] as const
 export type AgentStatus = typeof AGENT_STATUSES[number]
 
-export const PLANS = ['starter', 'pro'] as const
+export const PLANS = ['plus', 'pro'] as const
 export type Plan = typeof PLANS[number]

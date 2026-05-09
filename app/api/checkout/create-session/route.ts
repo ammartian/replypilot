@@ -9,12 +9,12 @@ export const runtime = 'nodejs'
 export async function POST(req: NextRequest) {
   const { plan } = await req.json()
 
-  if (!['starter', 'pro'].includes(plan)) {
+  if (!['plus', 'pro'].includes(plan)) {
     return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
   }
 
   const PRICE_IDS: Record<string, string> = {
-    starter: process.env.STRIPE_STARTER_PRICE_ID!,
+    plus: process.env.STRIPE_PLUS_PRICE_ID!,
     pro: process.env.STRIPE_PRO_PRICE_ID!,
   }
 

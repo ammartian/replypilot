@@ -35,6 +35,6 @@ describe('schema constants', () => {
   })
 
   it('pricing plans', () => {
-    expect(PLANS).toEqual(['starter', 'pro'])
+    expect(PLANS).toEqual(['plus', 'pro'])
   })
 })

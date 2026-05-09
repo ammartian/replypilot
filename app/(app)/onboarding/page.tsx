@@ -37,7 +37,7 @@ export default function OnboardingPage() {
     if (step === 'done') router.push('/dashboard')
   }, [step, router])
 
-  async function handleSubscribe(plan: 'starter' | 'pro') {
+  async function handleSubscribe(plan: 'plus' | 'pro') {
     setCheckoutLoading(true)
     try {
       const res = await fetch('/api/checkout/create-session', {
@@ -116,24 +116,24 @@ export default function OnboardingPage() {
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border p-4">
-              <p className="font-semibold">Starter</p>
-              <p className="text-2xl font-bold mt-1">RM 300<span className="text-sm font-normal text-gray-500">/mo</span></p>
+              <p className="font-semibold">Plus</p>
+              <p className="text-2xl font-bold mt-1">RM 299<span className="text-sm font-normal text-gray-500">/mo</span></p>
               <ul className="mt-3 space-y-1 text-sm text-gray-600">
                 <li>500 AI conversations/month</li>
                 <li>50 listing files</li>
               </ul>
               <Button
                 className="mt-4 w-full"
-                onClick={() => handleSubscribe('starter')}
+                onClick={() => handleSubscribe('plus')}
                 disabled={checkoutLoading}
               >
-                {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Get Starter'}
+                {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Get Plus'}
               </Button>
             </div>
             <div className="rounded-lg border border-blue-600 p-4 relative">
               <span className="absolute -top-2.5 left-3 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">Popular</span>
               <p className="font-semibold">Pro</p>
-              <p className="text-2xl font-bold mt-1">RM 500<span className="text-sm font-normal text-gray-500">/mo</span></p>
+              <p className="text-2xl font-bold mt-1">RM 499<span className="text-sm font-normal text-gray-500">/mo</span></p>
               <ul className="mt-3 space-y-1 text-sm text-gray-600">
                 <li>Unlimited conversations</li>
                 <li>200 listing files</li>
