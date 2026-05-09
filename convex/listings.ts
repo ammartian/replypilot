@@ -1,6 +1,7 @@
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import { getAuthUserId } from '@convex-dev/auth/server'
+import { api } from './_generated/api'
 
 export const generateUploadUrl = mutation({
   args: {},
@@ -27,13 +28,16 @@ export const saveListingFile = mutation({
       .first()
     if (!agent) throw new Error('Agent not found')
 
-    return ctx.db.insert('listings', {
+    const listingId = await ctx.db.insert('listings', {
       agentId: agent._id,
       fileName,
       fileType,
       storageId,
       status: 'processing',
     })
+
+    await ctx.scheduler.runAfter(0, api.pipeline.processListing, { listingId })
+    return listingId
   },
 })
 
@@ -74,6 +78,13 @@ export const hasListingsForAgent = query({
       .withIndex('by_agentId', (q) => q.eq('agentId', agent._id))
       .first()
     return listing !== null
+  },
+})
+
+export const getListingById = query({
+  args: { listingId: v.id('listings') },
+  handler: async (ctx, { listingId }) => {
+    return ctx.db.get(listingId)
   },
 })
 
