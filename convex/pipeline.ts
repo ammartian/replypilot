@@ -20,11 +20,15 @@ export const processListing = action({
       if (!fileUrl) throw new Error('File URL not found in storage')
 
       const siteUrl = process.env.SITE_URL ?? process.env.NEXT_PUBLIC_CONVEX_URL?.replace('.convex.cloud', '.vercel.app') ?? 'http://localhost:3000'
+      const extractController = new AbortController()
+      const extractTimeout = setTimeout(() => extractController.abort(), 55000)
       const extractRes = await fetch(`${siteUrl}/api/listings/extract-text`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ fileUrl, fileType: listing.fileType }),
+        signal: extractController.signal,
       })
+      clearTimeout(extractTimeout)
 
       if (!extractRes.ok) {
         const body = await extractRes.json().catch(() => ({}))

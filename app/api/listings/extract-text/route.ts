@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   const PDFParser = (await import('pdf2json')).default
