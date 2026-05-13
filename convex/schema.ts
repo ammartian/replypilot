@@ -19,10 +19,15 @@ export default defineSchema({
       v.literal('inactive'),
       v.literal('past_due'),
     ),
+    metaPhoneNumberId: v.optional(v.string()),
+    metaWabaId: v.optional(v.string()),
+    metaAccessToken: v.optional(v.string()),
+    metaTokenExpiresAt: v.optional(v.number()),
   })
     .index('by_userId', ['userId'])
     .index('by_whatsappNumber', ['whatsappNumber'])
-    .index('by_stripeCustomerId', ['stripeCustomerId']),
+    .index('by_stripeCustomerId', ['stripeCustomerId'])
+    .index('by_metaPhoneNumberId', ['metaPhoneNumberId']),
 
   listings: defineTable({
     agentId: v.id('agents'),

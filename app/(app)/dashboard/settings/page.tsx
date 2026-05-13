@@ -59,12 +59,20 @@ export default function SettingsPage() {
               >
                 {agent?.whatsappStatus === 'connected' ? 'Connected' : 'Pending'}
               </span>
+              {agent?.metaPhoneNumberId && (
+                <>
+                  <span className="text-neutral-500">Phone Number ID</span>
+                  <span className="font-medium font-mono text-xs">{agent.metaPhoneNumberId}</span>
+                </>
+              )}
             </div>
-            {agent?.whatsappStatus === 'pending' && (
-              <p className="text-xs text-neutral-400 mt-2">
-                WhatsApp provisioning is in progress. We&apos;ll notify you when it&apos;s ready.
-              </p>
-            )}
+            {agent?.metaTokenExpiresAt &&
+              agent.metaTokenExpiresAt - Date.now() < 7 * 24 * 60 * 60 * 1000 && (
+                <p className="text-xs text-red-500 mt-2">
+                  Your WhatsApp access token expires soon. Go to onboarding to reconnect your
+                  WhatsApp Business Account.
+                </p>
+              )}
           </CardContent>
         </Card>
 

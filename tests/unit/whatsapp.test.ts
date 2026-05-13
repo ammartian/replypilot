@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { parseWebhookPayload, type Dialog360Payload } from '@/lib/whatsapp'
+import { parseWebhookPayload, type MetaWebhookPayload } from '@/lib/whatsapp'
 
-function makePayload(overrides: Partial<Dialog360Payload> = {}): Dialog360Payload {
+function makePayload(overrides: Partial<MetaWebhookPayload> = {}): MetaWebhookPayload {
   return {
     object: 'whatsapp_business_account',
     entry: [
@@ -39,6 +39,7 @@ describe('parseWebhookPayload', () => {
   it('extracts agent phone, buyer phone, and message text', () => {
     const result = parseWebhookPayload(makePayload())
     expect(result).toEqual({
+      phoneNumberId: 'PHONE_ID',
       agentPhone: '601111111111',
       buyerPhone: '60222222222',
       buyerName: 'Buyer Name',

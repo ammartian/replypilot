@@ -12,6 +12,18 @@ function getConvex() {
   return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
 }
 
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const mode = searchParams.get('hub.mode')
+  const token = searchParams.get('hub.verify_token')
+  const challenge = searchParams.get('hub.challenge')
+
+  if (mode === 'subscribe' && token === process.env.META_WEBHOOK_VERIFY_TOKEN) {
+    return new Response(challenge, { status: 200 })
+  }
+  return new Response('Forbidden', { status: 403 })
+}
+
 export async function POST(req: NextRequest) {
   let body: unknown
   try {
@@ -30,13 +42,11 @@ export async function POST(req: NextRequest) {
   if (!parsed) return NextResponse.json({ ok: true })
 
   try {
-  const { agentPhone, buyerPhone, buyerName, messageText, messageId } = parsed
+  const { phoneNumberId, buyerPhone, buyerName, messageText, messageId } = parsed
   const convex = getConvex()
 
-  // Look up agent
-  const agent = await convex.query(api.agents.getAgentByWhatsappNumber, {
-    whatsappNumber: agentPhone,
-  })
+  // Look up agent by Meta phone number ID
+  const agent = await convex.query(api.agents.getAgentByPhoneNumberId, { phoneNumberId })
 
   if (!agent || agent.subscriptionStatus !== 'active') {
     return NextResponse.json({ ok: true })
@@ -49,7 +59,6 @@ export async function POST(req: NextRequest) {
   })
 
   // Atomically save buyer message — returns null if messageId already exists (duplicate webhook).
-  // A single mutation eliminates the race condition a query+mutation pair would have.
   const savedId = await convex.mutation(api.messages.saveBuyerMessageIdempotent, {
     agentId: agent._id as Id<'agents'>,
     leadId: leadId as Id<'leads'>,
@@ -103,13 +112,23 @@ export async function POST(req: NextRequest) {
   })
 
   // Send AI reply to buyer
-  await sendWhatsAppMessage({ to: buyerPhone, text: result.reply })
+  await sendWhatsAppMessage({
+    to: buyerPhone,
+    text: result.reply,
+    phoneNumberId: agent.metaPhoneNumberId!,
+    accessToken: agent.metaAccessToken!,
+  })
 
   // Notify agent on hot/warm handoff
   if (result.handoff && agent.whatsappNumber) {
     const level = result.classification.toUpperCase()
     const notif = `New ${level} lead from +${buyerPhone}${result.summary ? ` — ${result.summary}` : ''}. Check ReplyPilot dashboard.`
-    await sendWhatsAppMessage({ to: agent.whatsappNumber, text: notif })
+    await sendWhatsAppMessage({
+      to: agent.whatsappNumber,
+      text: notif,
+      phoneNumberId: agent.metaPhoneNumberId!,
+      accessToken: agent.metaAccessToken!,
+    })
   }
 
   return NextResponse.json({ ok: true })

@@ -11,15 +11,18 @@ import { Label } from '@/components/ui/label'
 import { getOnboardingStep } from '@/lib/onboarding'
 import { CheckCircle, Circle, Loader2 } from 'lucide-react'
 
+declare const FB: {
+  init: (opts: object) => void
+  login: (cb: (res: { authResponse?: { code?: string } }) => void, opts: object) => void
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
   const agent = useQuery(api.agents.getAgent)
   const ensureAgent = useMutation(api.agents.ensureAgent)
-  const setWhatsappNumber = useMutation(api.agents.setWhatsappNumber)
 
-  const [waNumber, setWaNumber] = useState('')
-  const [waSubmitting, setWaSubmitting] = useState(false)
-  const [waError, setWaError] = useState('')
+  const [connectLoading, setConnectLoading] = useState(false)
+  const [connectError, setConnectError] = useState('')
   const [checkoutLoading, setCheckoutLoading] = useState(false)
 
   const hasListings = useQuery(api.listings.hasListingsForAgent) ?? false
@@ -42,6 +45,60 @@ export default function OnboardingPage() {
     if (step === 'done') router.push('/dashboard')
   }, [step, router])
 
+  // Load FB JS SDK once when step 2 becomes active
+  useEffect(() => {
+    if (step !== 2) return
+    if (document.getElementById('fb-sdk')) return
+    const script = document.createElement('script')
+    script.id = 'fb-sdk'
+    script.src = 'https://connect.facebook.net/en_US/sdk.js'
+    script.onload = () => {
+      FB.init({
+        appId: process.env.NEXT_PUBLIC_META_APP_ID!,
+        autoLogAppEvents: true,
+        xfbml: true,
+        version: 'v25.0',
+      })
+    }
+    document.body.appendChild(script)
+  }, [step])
+
+  function launchWhatsAppSignup() {
+    setConnectError('')
+    setConnectLoading(true)
+    FB.login(
+      async (response) => {
+        const code = response.authResponse?.code
+        if (!code) {
+          setConnectLoading(false)
+          setConnectError('WhatsApp connection was cancelled or failed. Please try again.')
+          return
+        }
+        try {
+          const res = await fetch('/api/meta/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+          })
+          if (!res.ok) {
+            const data = await res.json()
+            throw new Error(data.error ?? 'Connection failed')
+          }
+        } catch (err) {
+          setConnectError(err instanceof Error ? err.message : 'Connection failed')
+        } finally {
+          setConnectLoading(false)
+        }
+      },
+      {
+        config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID,
+        response_type: 'code',
+        override_default_response_type: true,
+        extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
+      }
+    )
+  }
+
   async function handleSubscribe(plan: 'plus' | 'pro') {
     setCheckoutLoading(true)
     try {
@@ -54,22 +111,6 @@ export default function OnboardingPage() {
       if (url) window.location.href = url
     } finally {
       setCheckoutLoading(false)
-    }
-  }
-
-  async function handleWhatsappSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setWaError('')
-    const cleaned = waNumber.replace(/\D/g, '')
-    if (cleaned.length < 10) {
-      setWaError('Enter a valid phone number with country code (e.g. 601XXXXXXXX)')
-      return
-    }
-    setWaSubmitting(true)
-    try {
-      await setWhatsappNumber({ whatsappNumber: cleaned })
-    } finally {
-      setWaSubmitting(false)
     }
   }
 
@@ -160,37 +201,23 @@ export default function OnboardingPage() {
           <CardHeader>
             <CardTitle>Connect WhatsApp</CardTitle>
             <CardDescription>
-              Enter your WhatsApp Business number. We will configure it and notify you when it is ready.
+              Connect your WhatsApp Business Account via Facebook. You&apos;ll log in with Facebook
+              and select or create a WhatsApp Business Account.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {agent?.whatsappStatus === 'pending' && agent?.whatsappNumber ? (
-              <div className="flex items-center gap-3 rounded-lg bg-yellow-50 p-4 text-yellow-800">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <div>
-                  <p className="font-medium">Setup in progress</p>
-                  <p className="text-sm">We are provisioning {agent.whatsappNumber}. This usually takes a few hours.</p>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleWhatsappSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="wa-number">WhatsApp Business Number</Label>
-                  <Input
-                    id="wa-number"
-                    placeholder="601XXXXXXXX"
-                    value={waNumber}
-                    onChange={(e) => setWaNumber(e.target.value)}
-                  />
-                  {waError && <p className="text-sm text-red-600">{waError}</p>}
-                  <p className="text-xs text-gray-500">Include country code, no spaces or dashes</p>
-                </div>
-                <Button type="submit" disabled={waSubmitting}>
-                  {waSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Submit Number
-                </Button>
-              </form>
-            )}
+          <CardContent className="space-y-4">
+            <Button onClick={launchWhatsAppSignup} disabled={connectLoading}>
+              {connectLoading ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Connecting…</>
+              ) : (
+                'Connect WhatsApp Business'
+              )}
+            </Button>
+            {connectError && <p className="text-sm text-red-600">{connectError}</p>}
+            <p className="text-xs text-gray-500">
+              A Facebook popup will open. Log in, select your WhatsApp Business Account, and verify
+              your phone number via OTP. This takes about 2 minutes.
+            </p>
           </CardContent>
         </Card>
       )}

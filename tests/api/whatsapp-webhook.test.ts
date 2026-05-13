@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { POST } from '@/app/api/webhook/whatsapp/route'
+import { GET, POST } from '@/app/api/webhook/whatsapp/route'
 import { NextRequest } from 'next/server'
 
 const mockMutation = vi.hoisted(() => vi.fn())
@@ -51,9 +51,11 @@ const ACTIVE_AGENT = {
   subscriptionStatus: 'active',
   whatsappNumber: '601111111111',
   whatsappStatus: 'connected',
+  metaPhoneNumberId: 'PHONE_ID',
+  metaAccessToken: 'meta-token',
 }
 
-const DIALOG360_PAYLOAD = {
+const META_PAYLOAD = {
   object: 'whatsapp_business_account',
   entry: [
     {
@@ -84,11 +86,34 @@ const DIALOG360_PAYLOAD = {
   ],
 }
 
+describe('GET /api/webhook/whatsapp', () => {
+  beforeEach(() => {
+    process.env.META_WEBHOOK_VERIFY_TOKEN = 'test-verify-token'
+  })
+
+  it('returns challenge when token matches', async () => {
+    const req = new NextRequest(
+      'http://localhost/api/webhook/whatsapp?hub.mode=subscribe&hub.verify_token=test-verify-token&hub.challenge=abc123'
+    )
+    const res = await GET(req)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('abc123')
+  })
+
+  it('returns 403 when token does not match', async () => {
+    const req = new NextRequest(
+      'http://localhost/api/webhook/whatsapp?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=abc123'
+    )
+    const res = await GET(req)
+    expect(res.status).toBe(403)
+  })
+})
+
 describe('POST /api/webhook/whatsapp', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.NEXT_PUBLIC_CONVEX_URL = 'https://test.convex.cloud'
-    process.env.DIALOG360_API_KEY = 'test-api-key'
+    process.env.META_WEBHOOK_VERIFY_TOKEN = 'test-verify-token'
 
     mockQuery.mockResolvedValue(null)
     mockAction.mockResolvedValue([])
@@ -104,25 +129,26 @@ describe('POST /api/webhook/whatsapp', () => {
 
   it('returns 200 and sends AI reply for valid inbound message', async () => {
     mockQuery
-      .mockResolvedValueOnce(ACTIVE_AGENT) // getAgentByWhatsappNumber
+      .mockResolvedValueOnce(ACTIVE_AGENT) // getAgentByPhoneNumberId
       .mockResolvedValueOnce([])            // getMessagesForLead
-    // default mockMutation returns 'lead_123' (truthy) for all calls → not a duplicate
-    const res = await POST(makeRequest(DIALOG360_PAYLOAD))
+    const res = await POST(makeRequest(META_PAYLOAD))
     expect(res.status).toBe(200)
     expect(mockSendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         to: '60222222222',
         text: expect.any(String),
+        phoneNumberId: 'PHONE_ID',
+        accessToken: 'meta-token',
       })
     )
   })
 
   it('returns 200 and skips processing for duplicate messageId', async () => {
-    mockQuery.mockResolvedValueOnce(ACTIVE_AGENT) // getAgentByWhatsappNumber
+    mockQuery.mockResolvedValueOnce(ACTIVE_AGENT) // getAgentByPhoneNumberId
     mockMutation
       .mockResolvedValueOnce('lead_123') // getOrCreateLead
       .mockResolvedValueOnce(null)        // saveBuyerMessageIdempotent → duplicate, returns null
-    const res = await POST(makeRequest(DIALOG360_PAYLOAD))
+    const res = await POST(makeRequest(META_PAYLOAD))
     expect(res.status).toBe(200)
     expect(mockSendMessage).not.toHaveBeenCalled()
     expect(mockRunConversation).not.toHaveBeenCalled()
@@ -130,20 +156,20 @@ describe('POST /api/webhook/whatsapp', () => {
 
   it('returns 200 silently when agent not found', async () => {
     // mockQuery already returns null by default
-    const res = await POST(makeRequest(DIALOG360_PAYLOAD))
+    const res = await POST(makeRequest(META_PAYLOAD))
     expect(res.status).toBe(200)
     expect(mockSendMessage).not.toHaveBeenCalled()
   })
 
   it('returns 200 silently when agent subscription inactive', async () => {
     mockQuery.mockResolvedValue({ ...ACTIVE_AGENT, subscriptionStatus: 'inactive' })
-    const res = await POST(makeRequest(DIALOG360_PAYLOAD))
+    const res = await POST(makeRequest(META_PAYLOAD))
     expect(res.status).toBe(200)
     expect(mockSendMessage).not.toHaveBeenCalled()
   })
 
   it('returns 200 for non-text messages (ignored)', async () => {
-    const payload = JSON.parse(JSON.stringify(DIALOG360_PAYLOAD))
+    const payload = JSON.parse(JSON.stringify(META_PAYLOAD))
     payload.entry[0].changes[0].value.messages[0].type = 'image'
     const res = await POST(makeRequest(payload))
     expect(res.status).toBe(200)
@@ -154,11 +180,11 @@ describe('POST /api/webhook/whatsapp', () => {
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT)
       .mockResolvedValueOnce([])
-    await POST(makeRequest(DIALOG360_PAYLOAD))
+    await POST(makeRequest(META_PAYLOAD))
     expect(mockMutation.mock.calls.length).toBeGreaterThanOrEqual(3)
   })
 
-  it('does not reply when AI triggers handoff (hot/warm lead)', async () => {
+  it('notifies agent on hot/warm handoff', async () => {
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT)
       .mockResolvedValueOnce([])
@@ -168,13 +194,17 @@ describe('POST /api/webhook/whatsapp', () => {
       summary: 'Budget: RM 500k, KL condo, ready to buy',
       handoff: true,
     })
-    const res = await POST(makeRequest(DIALOG360_PAYLOAD))
+    const res = await POST(makeRequest(META_PAYLOAD))
     expect(res.status).toBe(200)
     expect(mockSendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ to: '60222222222' })
     )
     expect(mockSendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ to: ACTIVE_AGENT.whatsappNumber })
+      expect.objectContaining({
+        to: ACTIVE_AGENT.whatsappNumber,
+        phoneNumberId: 'PHONE_ID',
+        accessToken: 'meta-token',
+      })
     )
   })
 })

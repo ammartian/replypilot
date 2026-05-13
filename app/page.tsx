@@ -74,8 +74,11 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="py-6 text-center text-xs text-zinc-400 border-t border-zinc-100">
-        &copy; {new Date().getFullYear()} ReplyPilot. All rights reserved.
+      <footer className="py-6 text-center text-xs text-zinc-400 border-t border-zinc-100 flex flex-col items-center gap-1">
+        <span>&copy; {new Date().getFullYear()} ReplyPilot. All rights reserved.</span>
+        <Link href="/privacy" className="hover:text-zinc-600 underline underline-offset-2">
+          Privacy Policy
+        </Link>
       </footer>
     </div>
   )

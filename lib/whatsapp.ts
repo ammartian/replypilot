@@ -1,4 +1,4 @@
-export type Dialog360Payload = {
+export type MetaWebhookPayload = {
   object: string
   entry: Array<{
     id: string
@@ -24,6 +24,7 @@ export type Dialog360Payload = {
 }
 
 export type ParsedMessage = {
+  phoneNumberId: string
   agentPhone: string
   buyerPhone: string
   buyerName: string
@@ -31,7 +32,7 @@ export type ParsedMessage = {
   messageId: string
 }
 
-export function parseWebhookPayload(payload: Dialog360Payload): ParsedMessage | null {
+export function parseWebhookPayload(payload: MetaWebhookPayload): ParsedMessage | null {
   const entry = payload.entry?.[0]
   if (!entry) return null
 
@@ -47,6 +48,7 @@ export function parseWebhookPayload(payload: Dialog360Payload): ParsedMessage | 
   const contact = change.value.contacts?.[0]
 
   return {
+    phoneNumberId: change.value.metadata.phone_number_id,
     agentPhone: change.value.metadata.display_phone_number,
     buyerPhone: msg.from,
     buyerName: contact?.profile?.name ?? msg.from,
@@ -58,20 +60,18 @@ export function parseWebhookPayload(payload: Dialog360Payload): ParsedMessage | 
 export async function sendWhatsAppMessage({
   to,
   text,
-  agentPhone,
+  phoneNumberId,
+  accessToken,
 }: {
   to: string
   text: string
-  agentPhone?: string
+  phoneNumberId: string
+  accessToken: string
 }): Promise<void> {
-  const apiKey = process.env.DIALOG360_API_KEY
-  const base = process.env.DIALOG360_BASE_URL ?? 'https://waba.360dialog.io'
-  const url = `${base}/v1/messages`
-
-  await fetch(url, {
+  await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: {
-      'D360-API-KEY': apiKey!,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({

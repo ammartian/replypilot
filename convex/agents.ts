@@ -166,3 +166,38 @@ export const getAgentByWhatsappNumber = query({
       .first()
   },
 })
+
+export const setMetaCredentials = mutation({
+  args: {
+    metaAccessToken: v.string(),
+    metaPhoneNumberId: v.string(),
+    metaWabaId: v.string(),
+    whatsappNumber: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('Not authenticated')
+
+    const agent = await ctx.db
+      .query('agents')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!agent) throw new Error('Agent not found')
+
+    await ctx.db.patch(agent._id, {
+      ...args,
+      whatsappStatus: 'connected',
+      metaTokenExpiresAt: Date.now() + 60 * 24 * 60 * 60 * 1000,
+    })
+  },
+})
+
+export const getAgentByPhoneNumberId = query({
+  args: { phoneNumberId: v.string() },
+  handler: async (ctx, { phoneNumberId }) => {
+    return ctx.db
+      .query('agents')
+      .withIndex('by_metaPhoneNumberId', (q) => q.eq('metaPhoneNumberId', phoneNumberId))
+      .first()
+  },
+})
