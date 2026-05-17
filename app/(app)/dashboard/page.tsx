@@ -37,6 +37,7 @@ export default function DashboardPage() {
       const step = getOnboardingStep({
         subscriptionStatus: agent.subscriptionStatus ?? 'inactive',
         whatsappStatus: agent.whatsappStatus ?? 'pending',
+        hasAiConfig: !!agent.aiConfig,
         hasListings,
       })
       if (step !== 'done') router.push('/onboarding')

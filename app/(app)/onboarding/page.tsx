@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getOnboardingStep } from '@/lib/onboarding'
 import { CheckCircle, Circle, Loader2 } from 'lucide-react'
+import { AiWizard } from '@/components/ai-wizard'
 
 declare const FB: {
   init: (opts: object) => void
@@ -38,6 +39,7 @@ export default function OnboardingPage() {
       : getOnboardingStep({
           subscriptionStatus: agent.subscriptionStatus ?? 'inactive',
           whatsappStatus: agent.whatsappStatus ?? 'pending',
+          hasAiConfig: !!agent.aiConfig,
           hasListings,
         })
 
@@ -125,7 +127,8 @@ export default function OnboardingPage() {
   const steps = [
     { n: 1, label: 'Subscribe' },
     { n: 2, label: 'Connect WhatsApp' },
-    { n: 3, label: 'Upload Listings' },
+    { n: 3, label: 'AI Setup' },
+    { n: 4, label: 'Upload Listings' },
   ]
 
   return (
@@ -223,6 +226,15 @@ export default function OnboardingPage() {
       )}
 
       {step === 3 && (
+        <div>
+          <div className="mb-4 text-center">
+            <p className="text-sm text-gray-500">Set up how your AI communicates with buyers.</p>
+          </div>
+          <AiWizard onSaved={() => {}} />
+        </div>
+      )}
+
+      {step === 4 && (
         <Card>
           <CardHeader>
             <CardTitle>Add Your Listings</CardTitle>
