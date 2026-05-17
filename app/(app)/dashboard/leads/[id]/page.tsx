@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ArrowLeft, MessageCircle, Bot, User, Send } from 'lucide-react'
+import { WhatsAppMessage } from '@/components/whatsapp-message'
+import { FormattingToolbar } from '@/components/formatting-toolbar'
 
 export default function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -31,6 +33,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const [sendError, setSendError] = useState<string | null>(null)
   const [toggleError, setToggleError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   async function handleAiToggle(value: boolean) {
     if (!lead) return
@@ -226,7 +229,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                           : 'bg-blue-600 text-white rounded-tr-sm'
                       }`}
                     >
-                      <span className="whitespace-pre-wrap">{msg.content}</span>
+                      <WhatsAppMessage content={msg.content} />
                     </div>
                     <span className="text-[10px] text-neutral-400 px-1">
                       {formatDateTime(msg._creationTime)}
@@ -240,7 +243,14 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* Reply box */}
-        <div className="border-t p-3">
+        <div className="border-t">
+          <FormattingToolbar
+            textareaRef={textareaRef}
+            value={replyText}
+            onChange={setReplyText}
+            disabled={agent?.whatsappStatus !== 'connected' || sending}
+          />
+          <div className="p-3">
           {lead.aiEnabled === false && (
             <p className="text-xs text-amber-600 mb-2">
               AI replies paused — you&apos;re in manual mode.
@@ -268,6 +278,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             }}
           >
             <textarea
+              ref={textareaRef}
               className="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[40px] max-h-32"
               placeholder={agent?.whatsappStatus === 'connected' ? 'Type a reply…' : 'WhatsApp not connected'}
               disabled={agent?.whatsappStatus !== 'connected' || sending}
@@ -290,6 +301,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               <Send className="w-4 h-4" />
             </Button>
           </form>
+          </div>
         </div>
       </div>
     </div>
