@@ -23,6 +23,14 @@ export default defineSchema({
     metaWabaId: v.optional(v.string()),
     metaAccessToken: v.optional(v.string()),
     metaTokenExpiresAt: v.optional(v.number()),
+    industry: v.optional(v.string()),
+    aiConfig: v.optional(
+      v.object({
+        generatedInstructions: v.string(),
+        wizardAnswers: v.any(),
+        lastUpdated: v.number(),
+      }),
+    ),
   })
     .index('by_userId', ['userId'])
     .index('by_whatsappNumber', ['whatsappNumber'])

@@ -119,4 +119,26 @@ describe('runConversation', () => {
     const model: string = mockCreate.mock.calls[0][0].model
     expect(model).toMatch(/haiku/i)
   })
+
+  it('injects customInstructions into system prompt when provided', async () => {
+    mockResponse(
+      JSON.stringify({ reply: 'Hi!', classification: 'new', summary: null, handoff: false })
+    )
+    await runConversation({
+      ...BASE_ARGS,
+      customInstructions: 'Always reply in formal English. Never use emoji.',
+    })
+    const systemPrompt: string = mockCreate.mock.calls[0][0].system
+    expect(systemPrompt).toContain('Always reply in formal English. Never use emoji.')
+  })
+
+  it('uses default instructions when customInstructions is not provided', async () => {
+    mockResponse(
+      JSON.stringify({ reply: 'Hi!', classification: 'new', summary: null, handoff: false })
+    )
+    await runConversation(BASE_ARGS)
+    const systemPrompt: string = mockCreate.mock.calls[0][0].system
+    // Default prompt still contains core qualification guidance
+    expect(systemPrompt).toContain('Budget')
+  })
 })

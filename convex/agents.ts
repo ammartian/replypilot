@@ -201,3 +201,30 @@ export const getAgentByPhoneNumberId = query({
       .first()
   },
 })
+
+export const saveAiConfig = mutation({
+  args: {
+    industry: v.string(),
+    wizardAnswers: v.any(),
+    generatedInstructions: v.string(),
+  },
+  handler: async (ctx, { industry, wizardAnswers, generatedInstructions }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('Not authenticated')
+
+    const agent = await ctx.db
+      .query('agents')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!agent) throw new Error('Agent not found')
+
+    await ctx.db.patch(agent._id, {
+      industry,
+      aiConfig: {
+        generatedInstructions,
+        wizardAnswers,
+        lastUpdated: Date.now(),
+      },
+    })
+  },
+})

@@ -17,15 +17,21 @@ export type ListingChunk = {
   text: string
 }
 
-function buildSystemPrompt(agentName: string, listingChunks: ListingChunk[]): string {
-  const listingsSection =
-    listingChunks.length > 0
-      ? `\n\nAGENT'S PROPERTY LISTINGS (use this to answer questions about available properties):\n${listingChunks.map((c) => c.text).join('\n---\n')}`
-      : ''
+const LOCKED_WHATSAPP_FORMATTING = `WHATSAPP FORMATTING:
+- Bold: *text* — use for key info like property type, location, price range
+- Italic: _text_ — use for light emphasis
+- Strikethrough: ~text~ — use sparingly
+- Numbered list: use 1. 2. 3. when listing multiple items
+- Never use markdown headers (#, ##) — WhatsApp does not render them`
 
-  return `You are acting as ${agentName}'s assistant, helping qualify property buyers over WhatsApp.
+const LOCKED_CLASSIFICATION = `After each message, classify the lead based on ALL info gathered so far:
+- hot: budget clear + specific location + timeline under 3 months
+- warm: budget clear + some preferences, timeline 3-6 months
+- normal: some info, vague on key points
+- cold: just browsing, no budget, no timeline
+- new: first message, no info yet`
 
-LANGUAGE RULES:
+const DEFAULT_BEHAVIOR = `LANGUAGE RULES:
 - Default to English.
 - If the buyer writes in Malay, reply in Malay.
 - If the buyer writes in Chinese (Simplified or Traditional), reply in Chinese.
@@ -43,30 +49,40 @@ TONE & STYLE:
 - Warm but not over-the-top friendly.
 - Use simple words. Write at a 5th grade reading level for all languages. Short sentences. Common words only. If a simpler word exists, use it.
 
-WHATSAPP FORMATTING:
-- Bold: *text* — use for key info like property type, location, price range
-- Italic: _text_ — use for light emphasis
-- Strikethrough: ~text~ — use sparingly
-- Numbered list: use 1. 2. 3. when listing multiple items
-- Never use markdown headers (#, ##) — WhatsApp does not render them
-
 QUALIFICATION — gather these naturally across the conversation, one at a time:
 1. Budget range
 2. Location preference
 3. Property type (condo, landed, commercial)
 4. Timeline (ready now / 3-6 months / just looking)
-5. Specific requirements if any
+5. Specific requirements if any`
 
-After each message, classify the lead based on ALL info gathered so far:
-- hot: budget clear + specific location + timeline under 3 months
-- warm: budget clear + some preferences, timeline 3-6 months
-- normal: some info, vague on key points
-- cold: just browsing, no budget, no timeline
-- new: first message, no info yet
+function buildSystemPrompt(
+  agentName: string,
+  listingChunks: ListingChunk[],
+  customInstructions?: string,
+): string {
+  const listingsSection =
+    listingChunks.length > 0
+      ? `\n\nAGENT'S LISTINGS (use this to answer questions about available products/properties):\n${listingChunks.map((c) => c.text).join('\n---\n')}`
+      : ''
 
-When classification is hot or warm, set handoff=true and end your reply naturally — something like "I'll get ${agentName} to reach out to you directly." Keep it short and human, not templated.
+  const behaviorSection = customInstructions
+    ? `AGENT BEHAVIOR INSTRUCTIONS:\n${customInstructions}`
+    : DEFAULT_BEHAVIOR
 
-When handoff=true, provide a summary of what the buyer shared.${listingsSection}
+  const handoffInstruction = customInstructions
+    ? `When handoff=true, provide a summary of what the buyer shared.`
+    : `When classification is hot or warm, set handoff=true and end your reply naturally — something like "I'll get ${agentName} to reach out to you directly." Keep it short and human, not templated.\n\nWhen handoff=true, provide a summary of what the buyer shared.`
+
+  return `You are acting as ${agentName}'s assistant, helping qualify buyers over WhatsApp.
+
+${LOCKED_WHATSAPP_FORMATTING}
+
+${behaviorSection}
+
+${LOCKED_CLASSIFICATION}
+
+${handoffInstruction}${listingsSection}
 
 IMPORTANT: Respond ONLY with valid JSON in this exact format:
 {
@@ -82,11 +98,13 @@ export async function runConversation({
   history,
   newMessage,
   listingChunks,
+  customInstructions,
 }: {
   agentName: string
   history: ConversationMessage[]
   newMessage: string
   listingChunks: ListingChunk[]
+  customInstructions?: string
 }): Promise<ConversationResult> {
   const client = new Anthropic()
 
@@ -101,7 +119,7 @@ export async function runConversation({
   const response = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1024,
-    system: buildSystemPrompt(agentName, listingChunks),
+    system: buildSystemPrompt(agentName, listingChunks, customInstructions),
     // Prefill assistant turn with "{" to force raw JSON output, no markdown fences
     messages: [...messages, { role: 'assistant', content: '{' }],
   })

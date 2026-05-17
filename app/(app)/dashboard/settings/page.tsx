@@ -5,7 +5,8 @@ import { api } from '@/convex/_generated/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Bot } from 'lucide-react'
+import Link from 'next/link'
 
 export default function SettingsPage() {
   const agent = useQuery(api.agents.getAgent)
@@ -73,6 +74,28 @@ export default function SettingsPage() {
                   WhatsApp Business Account.
                 </p>
               )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Behavior</CardTitle>
+            <CardDescription>Customize how your AI assistant communicates</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-neutral-500">
+                {agent?.aiConfig
+                  ? `Last updated ${new Date(agent.aiConfig.lastUpdated).toLocaleDateString()}`
+                  : 'Not configured — using defaults'}
+              </div>
+              <Button variant="outline" className="gap-2" asChild>
+                <Link href="/dashboard/settings/ai">
+                  <Bot className="w-4 h-4" />
+                  {agent?.aiConfig ? 'Edit' : 'Set up'}
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

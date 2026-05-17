@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
     history: history.map((m: { role: 'buyer' | 'ai' | 'agent'; content: string }) => ({ role: m.role === 'agent' ? 'ai' : m.role, content: m.content })),
     newMessage: messageText,
     listingChunks,
+    customInstructions: agent.aiConfig?.generatedInstructions,
   })
 
   // Save AI reply
