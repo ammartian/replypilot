@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildMappedConstraints } from '@/lib/ai-config'
+import { buildMappedConstraints, shouldShowWizard } from '@/lib/ai-config'
 import type { WizardAnswers } from '@/lib/ai-config'
 
 // Wizard step count is tested via the exported STEPS constant.
@@ -24,6 +24,24 @@ const BASE: WizardAnswers = {
   handoffTrigger: 'hot_warm',
   handoffMessagePreset: 'reach_out',
 }
+
+describe('shouldShowWizard', () => {
+  it('shows wizard when no aiConfig exists', () => {
+    expect(shouldShowWizard(false, false)).toBe(true)
+  })
+
+  it('hides wizard when aiConfig exists and not regenerating', () => {
+    expect(shouldShowWizard(true, false)).toBe(false)
+  })
+
+  it('shows wizard when aiConfig exists but regenerate flow is active', () => {
+    expect(shouldShowWizard(true, true)).toBe(true)
+  })
+
+  it('shows wizard when no aiConfig even if regenerate flag is true', () => {
+    expect(shouldShowWizard(false, true)).toBe(true)
+  })
+})
 
 describe('wizard step 5 — preview input determinism', () => {
   it('same answers always produce same constraints', () => {

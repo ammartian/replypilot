@@ -146,6 +146,10 @@ export function buildMappedConstraints(answers: WizardAnswers): MappedConstraint
   }
 }
 
+export function shouldShowWizard(hasAiConfig: boolean, isRegenerateFlow: boolean): boolean {
+  return !hasAiConfig || isRegenerateFlow
+}
+
 export async function generateInstructions(answers: WizardAnswers): Promise<string> {
   const c = buildMappedConstraints(answers)
 

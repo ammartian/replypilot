@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Check, Loader2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Check, Loader2, RefreshCw } from 'lucide-react'
+import { shouldShowWizard } from '@/lib/ai-config'
 import type { WizardAnswers, QualificationField, Industry } from '@/lib/ai-config'
 import { cn } from '@/lib/utils'
 
@@ -109,9 +110,12 @@ export default function AiSettingsPage() {
   const saveAiConfig = useMutation(api.agents.saveAiConfig)
   const router = useRouter()
 
+  const [isRegenerateFlow, setIsRegenerateFlow] = useState(false)
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<WizardAnswers>(DEFAULT_ANSWERS)
   const [preview, setPreview] = useState<string | null>(null)
+  // Edit View state — separate from wizard preview
+  const [editedInstructions, setEditedInstructions] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -119,8 +123,11 @@ export default function AiSettingsPage() {
 
   // Pre-populate from existing config
   useEffect(() => {
-    if (agent?.aiConfig?.wizardAnswers) {
-      setAnswers(agent.aiConfig.wizardAnswers as WizardAnswers)
+    if (agent?.aiConfig) {
+      if (agent.aiConfig.wizardAnswers) {
+        setAnswers(agent.aiConfig.wizardAnswers as WizardAnswers)
+      }
+      setEditedInstructions(agent.aiConfig.generatedInstructions ?? '')
     }
   }, [agent])
 
@@ -188,7 +195,8 @@ export default function AiSettingsPage() {
     }
   }
 
-  async function handleSave() {
+  // Wizard View save — after wizard flow completes
+  async function handleWizardSave() {
     if (!preview) return
     setIsSaving(true)
     setError(null)
@@ -198,8 +206,33 @@ export default function AiSettingsPage() {
         wizardAnswers: answers,
         generatedInstructions: preview,
       })
+      setEditedInstructions(preview)
       setSaved(true)
-      setTimeout(() => router.push('/dashboard/settings'), 1000)
+      setTimeout(() => {
+        setSaved(false)
+        setIsRegenerateFlow(false)
+        setStep(0)
+        setPreview(null)
+      }, 1000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Edit View save — saves directly edited instructions
+  async function handleEditSave() {
+    setIsSaving(true)
+    setError(null)
+    try {
+      await saveAiConfig({
+        industry: answers.industry,
+        wizardAnswers: answers,
+        generatedInstructions: editedInstructions,
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 1500)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
     } finally {
@@ -215,17 +248,81 @@ export default function AiSettingsPage() {
     )
   }
 
+  const pageHeader = (onBack: () => void) => (
+    <div className="flex items-center gap-3 mb-6">
+      <button onClick={onBack} className="text-neutral-400 hover:text-neutral-600 transition-colors">
+        <ArrowLeft className="w-4 h-4" />
+      </button>
+      <h1 className="text-2xl font-bold">AI Behavior</h1>
+    </div>
+  )
+
+  // Edit View — shown when instructions already exist
+  if (!shouldShowWizard(!!agent?.aiConfig, isRegenerateFlow)) {
+    return (
+      <div className="p-4 md:p-8 max-w-2xl mx-auto">
+        {pageHeader(() => router.push('/dashboard/settings'))}
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Instructions</CardTitle>
+            <CardDescription>
+              Edit your AI&apos;s instructions directly and save, or start the setup flow again to regenerate them.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <textarea
+              rows={14}
+              value={editedInstructions}
+              onChange={(e) => { setEditedInstructions(e.target.value); setSaved(false) }}
+              className="w-full resize-y rounded-md border border-input bg-neutral-50 dark:bg-neutral-800/50 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button onClick={handleEditSave} disabled={isSaving || !editedInstructions.trim()} className="w-full">
+              {saved ? (
+                <><Check className="w-4 h-4 mr-2" />Saved!</>
+              ) : isSaving ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</>
+              ) : (
+                'Save'
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <div className="mt-4">
+          <Separator className="mb-4" />
+          <Button
+            variant="outline"
+            className="w-full gap-2 text-neutral-500"
+            onClick={() => {
+              setIsRegenerateFlow(true)
+              setStep(0)
+              setPreview(null)
+              setError(null)
+              setSaved(false)
+            }}
+          >
+            <RefreshCw className="w-4 h-4" />
+            Regenerate flow
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Wizard View — shown for first-time setup or regenerate flow
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => router.push('/dashboard/settings')}
-          className="text-neutral-400 hover:text-neutral-600 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <h1 className="text-2xl font-bold">AI Behavior</h1>
-      </div>
+      {pageHeader(() => {
+        if (isRegenerateFlow) {
+          setIsRegenerateFlow(false)
+          setStep(0)
+          setPreview(null)
+        } else {
+          router.push('/dashboard/settings')
+        }
+      })}
+
 
       {/* Step indicator */}
       <div className="flex gap-1 mb-8">
@@ -579,9 +676,9 @@ export default function AiSettingsPage() {
       {step === 5 && (
         <Card>
           <CardHeader>
-            <CardTitle>Instruction Preview</CardTitle>
+            <CardTitle>AI Instructions</CardTitle>
             <CardDescription>
-              Claude synthesizes your choices into a clear instruction block. Edit freely before saving.
+              Your current AI instructions. Edit directly and save, or generate fresh ones from your choices above.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -604,7 +701,7 @@ export default function AiSettingsPage() {
                   onChange={(e) => setPreview(e.target.value)}
                   className="w-full resize-y rounded-md border border-input bg-neutral-50 dark:bg-neutral-800/50 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
-                <Button onClick={handleSave} disabled={isSaving || saved} className="w-full">
+                <Button onClick={handleWizardSave} disabled={isSaving || saved} className="w-full">
                   {saved ? (
                     <>
                       <Check className="w-4 h-4 mr-2" />
