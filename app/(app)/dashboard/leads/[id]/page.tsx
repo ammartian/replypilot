@@ -171,7 +171,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                           : 'bg-blue-600 text-white rounded-tr-sm'
                       }`}
                     >
-                      {msg.content}
+                      <span className="whitespace-pre-wrap">{msg.content}</span>
                     </div>
                     <span className="text-[10px] text-neutral-400 px-1">
                       {formatDateTime(msg._creationTime)}
