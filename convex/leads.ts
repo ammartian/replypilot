@@ -40,6 +40,7 @@ export const updateLead = mutation({
     ),
     summary: v.optional(v.string()),
     handedOff: v.optional(v.boolean()),
+    aiEnabled: v.optional(v.boolean()),
     status: v.optional(
       v.union(v.literal('new'), v.literal('contacted'), v.literal('closed')),
     ),

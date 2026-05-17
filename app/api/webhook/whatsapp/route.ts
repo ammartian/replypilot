@@ -69,6 +69,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // Check if AI is enabled for this lead
+  const lead = await convex.query(api.leads.getLead, { leadId: leadId as Id<'leads'> })
+  if (lead?.aiEnabled === false) {
+    return NextResponse.json({ ok: true })
+  }
+
   // Fetch conversation history
   const history = await convex.query(api.messages.getMessagesForLead, {
     leadId: leadId as Id<'leads'>,

@@ -65,6 +65,7 @@ export default defineSchema({
     summary: v.optional(v.string()),
     status: v.union(v.literal('new'), v.literal('contacted'), v.literal('closed')),
     handedOff: v.boolean(),
+    aiEnabled: v.optional(v.boolean()),
   })
     .index('by_agentId', ['agentId'])
     .index('by_agentId_and_buyerPhone', ['agentId', 'buyerPhone']),

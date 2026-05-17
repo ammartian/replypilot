@@ -60,6 +60,8 @@ export const sendAgentReply = action({
       role: 'agent',
       content,
     })
+
+    await ctx.runMutation(api.leads.updateLead, { leadId, aiEnabled: false })
   },
 })
 

@@ -129,8 +129,9 @@ describe('POST /api/webhook/whatsapp', () => {
 
   it('returns 200 and sends AI reply for valid inbound message', async () => {
     mockQuery
-      .mockResolvedValueOnce(ACTIVE_AGENT) // getAgentByPhoneNumberId
-      .mockResolvedValueOnce([])            // getMessagesForLead
+      .mockResolvedValueOnce(ACTIVE_AGENT)       // getAgentByPhoneNumberId
+      .mockResolvedValueOnce({ aiEnabled: true }) // getLead
+      .mockResolvedValueOnce([])                  // getMessagesForLead
     const res = await POST(makeRequest(META_PAYLOAD))
     expect(res.status).toBe(200)
     expect(mockSendMessage).toHaveBeenCalledWith(
@@ -179,6 +180,7 @@ describe('POST /api/webhook/whatsapp', () => {
   it('saves buyer message and AI reply to DB', async () => {
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT)
+      .mockResolvedValueOnce({ aiEnabled: true })
       .mockResolvedValueOnce([])
     await POST(makeRequest(META_PAYLOAD))
     expect(mockMutation.mock.calls.length).toBeGreaterThanOrEqual(3)
@@ -188,6 +190,7 @@ describe('POST /api/webhook/whatsapp', () => {
     const agentMessage = { role: 'agent', content: 'This is the agent speaking', _id: 'msg_agent', _creationTime: 1 }
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT)
+      .mockResolvedValueOnce({ aiEnabled: true })
       .mockResolvedValueOnce([agentMessage])
     await POST(makeRequest(META_PAYLOAD))
     const historyPassedToAI: Array<{ role: string; content: string }> = mockRunConversation.mock.calls[0][0].history
@@ -196,9 +199,25 @@ describe('POST /api/webhook/whatsapp', () => {
     expect(roles).toContain('ai')
   })
 
+  it('returns 200 and skips AI when lead.aiEnabled is false, but still saves buyer message', async () => {
+    mockQuery
+      .mockResolvedValueOnce(ACTIVE_AGENT)       // getAgentByPhoneNumberId
+      .mockResolvedValueOnce({ aiEnabled: false }) // getLead
+    const res = await POST(makeRequest(META_PAYLOAD))
+    expect(res.status).toBe(200)
+    expect(mockRunConversation).not.toHaveBeenCalled()
+    expect(mockSendMessage).not.toHaveBeenCalled()
+    // buyer message should still be saved (saveBuyerMessageIdempotent was called)
+    expect(mockMutation).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ content: 'I want to buy a condo in KL, budget 500k' })
+    )
+  })
+
   it('notifies agent on hot/warm handoff', async () => {
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT)
+      .mockResolvedValueOnce({ aiEnabled: true })
       .mockResolvedValueOnce([])
     mockRunConversation.mockResolvedValue({
       reply: "Let me connect you with Ahmad who can help you further. They'll be in touch shortly!",

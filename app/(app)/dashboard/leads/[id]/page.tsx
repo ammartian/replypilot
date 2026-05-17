@@ -108,6 +108,28 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               Handed off to agent
             </span>
           )}
+          {/* AI toggle */}
+          {lead.aiEnabled !== false ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 gap-1"
+              onClick={() => updateLead({ leadId: lead._id, aiEnabled: false })}
+            >
+              <Bot className="h-3 w-3" />
+              AI On
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-xs text-amber-600 border-amber-200 hover:bg-amber-50 gap-1"
+              onClick={() => updateLead({ leadId: lead._id, aiEnabled: true })}
+            >
+              <User className="h-3 w-3" />
+              Manual
+            </Button>
+          )}
           {agent?.whatsappStatus === 'connected' && (
             <a
               href={waHref}
@@ -204,6 +226,11 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
         {/* Reply box */}
         <div className="border-t p-3">
+          {lead.aiEnabled === false && (
+            <p className="text-xs text-amber-600 mb-2">
+              AI replies paused — you&apos;re in manual mode.
+            </p>
+          )}
           {sendError && (
             <p className="text-xs text-red-500 mb-2">{sendError}</p>
           )}
