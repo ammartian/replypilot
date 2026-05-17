@@ -33,6 +33,10 @@ export function formatPhone(phone: string): string {
   return phone.startsWith('+') ? phone : `+${phone}`
 }
 
+export function toWaMePhone(phone: string): string {
+  return phone.replace(/^\+/, '').replace(/\s+/g, '')
+}
+
 export function formatDateTime(ms: number): string {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
