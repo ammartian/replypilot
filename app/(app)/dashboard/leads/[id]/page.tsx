@@ -29,7 +29,18 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const [replyText, setReplyText] = useState('')
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
+  const [toggleError, setToggleError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  async function handleAiToggle(value: boolean) {
+    if (!lead) return
+    setToggleError(null)
+    try {
+      await updateLead({ leadId: lead._id, aiEnabled: value })
+    } catch (err) {
+      setToggleError(err instanceof Error ? err.message : 'Failed to update AI mode')
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -114,7 +125,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               variant="outline"
               size="sm"
               className="h-6 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 gap-1"
-              onClick={() => updateLead({ leadId: lead._id, aiEnabled: false })}
+              onClick={() => handleAiToggle(false)}
             >
               <Bot className="h-3 w-3" />
               AI On
@@ -124,7 +135,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               variant="outline"
               size="sm"
               className="h-6 px-2 text-xs text-amber-600 border-amber-200 hover:bg-amber-50 gap-1"
-              onClick={() => updateLead({ leadId: lead._id, aiEnabled: true })}
+              onClick={() => handleAiToggle(true)}
             >
               <User className="h-3 w-3" />
               Manual
@@ -147,6 +158,10 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             </a>
           )}
         </div>
+
+        {toggleError && (
+          <p className="text-xs text-red-500 mt-2">{toggleError}</p>
+        )}
 
         {/* Summary */}
         {lead.summary && (
