@@ -17,14 +17,14 @@ export default function DashboardPage() {
     api.leads.getLeadsForAgent,
     agent?._id ? { agentId: agent._id } : 'skip'
   )
-  const hasListings = useQuery(api.listings.hasListingsForAgent) ?? false
+  const hasListings = useQuery(api.listings.hasListingsForAgent)
 
   useEffect(() => {
     if (agent === null) {
       router.push('/login')
       return
     }
-    if (agent !== undefined) {
+    if (agent !== undefined && hasListings !== undefined) {
       const step = getOnboardingStep({
         subscriptionStatus: agent.subscriptionStatus ?? 'inactive',
         whatsappStatus: agent.whatsappStatus ?? 'pending',
@@ -34,7 +34,7 @@ export default function DashboardPage() {
     }
   }, [agent, hasListings, router])
 
-  if (agent === undefined || leads === undefined) {
+  if (agent === undefined || leads === undefined || hasListings === undefined) {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px]">
         <div className="text-neutral-400 text-sm">Loading...</div>
