@@ -35,6 +35,13 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  useEffect(() => {
+    const ta = textareaRef.current
+    if (!ta) return
+    ta.style.height = 'auto'
+    ta.style.height = ta.scrollHeight + 'px'
+  }, [replyText])
+
   async function handleAiToggle(value: boolean) {
     if (!lead) return
     setToggleError(null)
@@ -279,7 +286,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           >
             <textarea
               ref={textareaRef}
-              className="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[40px] max-h-32"
+              className="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[40px] max-h-[176px] overflow-y-auto"
               placeholder={agent?.whatsappStatus === 'connected' ? 'Type a reply…' : 'WhatsApp not connected'}
               disabled={agent?.whatsappStatus !== 'connected' || sending}
               value={replyText}
