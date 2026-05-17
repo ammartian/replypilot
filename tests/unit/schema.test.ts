@@ -7,6 +7,7 @@ import {
   LISTING_STATUSES,
   AGENT_STATUSES,
   PLANS,
+  MESSAGE_ROLES,
 } from '@/convex/constants'
 
 describe('schema constants', () => {
@@ -36,5 +37,11 @@ describe('schema constants', () => {
 
   it('pricing plans', () => {
     expect(PLANS).toEqual(['plus', 'pro'])
+  })
+
+  it('message roles include agent for human-sent replies', () => {
+    expect(MESSAGE_ROLES).toContain('buyer')
+    expect(MESSAGE_ROLES).toContain('ai')
+    expect(MESSAGE_ROLES).toContain('agent')
   })
 })

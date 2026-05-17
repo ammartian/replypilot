@@ -1,11 +1,14 @@
-import { mutation, query } from './_generated/server'
+import { action, mutation, query } from './_generated/server'
 import { v } from 'convex/values'
+import { getAuthUserId } from '@convex-dev/auth/server'
+import { api } from './_generated/api'
+import { sendWhatsAppMessage } from '../lib/whatsapp'
 
 export const saveMessage = mutation({
   args: {
     agentId: v.id('agents'),
     leadId: v.id('leads'),
-    role: v.union(v.literal('buyer'), v.literal('ai')),
+    role: v.union(v.literal('buyer'), v.literal('ai'), v.literal('agent')),
     content: v.string(),
     messageId: v.optional(v.string()),
   },
@@ -32,6 +35,31 @@ export const saveBuyerMessageIdempotent = mutation({
       .first()
     if (existing) return null
     return ctx.db.insert('messages', { agentId, leadId, role: 'buyer', content, messageId })
+  },
+})
+
+export const sendAgentReply = action({
+  args: { leadId: v.id('leads'), content: v.string() },
+  handler: async (ctx, { leadId, content }) => {
+    await getAuthUserId(ctx)
+    const agent = await ctx.runQuery(api.agents.getAgent)
+    const lead = await ctx.runQuery(api.leads.getLead, { leadId })
+    if (!agent || !lead) throw new Error('Not found')
+    if (!agent.metaPhoneNumberId || !agent.metaAccessToken) throw new Error('WhatsApp not connected')
+
+    await sendWhatsAppMessage({
+      to: lead.buyerPhone,
+      text: content,
+      phoneNumberId: agent.metaPhoneNumberId,
+      accessToken: agent.metaAccessToken,
+    })
+
+    await ctx.runMutation(api.messages.saveMessage, {
+      agentId: agent._id,
+      leadId,
+      role: 'agent',
+      content,
+    })
   },
 })
 

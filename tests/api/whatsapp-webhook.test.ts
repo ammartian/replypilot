@@ -184,6 +184,18 @@ describe('POST /api/webhook/whatsapp', () => {
     expect(mockMutation.mock.calls.length).toBeGreaterThanOrEqual(3)
   })
 
+  it('maps agent messages in history to ai role before passing to runConversation', async () => {
+    const agentMessage = { role: 'agent', content: 'This is the agent speaking', _id: 'msg_agent', _creationTime: 1 }
+    mockQuery
+      .mockResolvedValueOnce(ACTIVE_AGENT)
+      .mockResolvedValueOnce([agentMessage])
+    await POST(makeRequest(META_PAYLOAD))
+    const historyPassedToAI: Array<{ role: string; content: string }> = mockRunConversation.mock.calls[0][0].history
+    const roles = historyPassedToAI.map(m => m.role)
+    expect(roles).not.toContain('agent')
+    expect(roles).toContain('ai')
+  })
+
   it('notifies agent on hot/warm handoff', async () => {
     mockQuery
       .mockResolvedValueOnce(ACTIVE_AGENT)

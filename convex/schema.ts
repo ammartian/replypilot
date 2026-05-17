@@ -72,7 +72,7 @@ export default defineSchema({
   messages: defineTable({
     agentId: v.id('agents'),
     leadId: v.id('leads'),
-    role: v.union(v.literal('buyer'), v.literal('ai')),
+    role: v.union(v.literal('buyer'), v.literal('ai'), v.literal('agent')),
     content: v.string(),
     messageId: v.optional(v.string()),
   })

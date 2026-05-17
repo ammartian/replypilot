@@ -18,3 +18,6 @@ export type AgentStatus = typeof AGENT_STATUSES[number]
 
 export const PLANS = ['plus', 'pro'] as const
 export type Plan = typeof PLANS[number]
+
+export const MESSAGE_ROLES = ['buyer', 'ai', 'agent'] as const
+export type MessageRole = typeof MESSAGE_ROLES[number]

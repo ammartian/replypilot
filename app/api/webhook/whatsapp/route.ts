@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
   // Run AI conversation
   const result = await runConversation({
     agentName: agent.name,
-    history: history.map((m: { role: 'buyer' | 'ai'; content: string }) => ({ role: m.role, content: m.content })),
+    history: history.map((m: { role: 'buyer' | 'ai' | 'agent'; content: string }) => ({ role: m.role === 'agent' ? 'ai' : m.role, content: m.content })),
     newMessage: messageText,
     listingChunks,
   })
