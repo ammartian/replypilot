@@ -34,7 +34,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
   if (!lead) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <p className="text-neutral-500">Lead not found.</p>
       </div>
     )
@@ -43,7 +43,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const badge = classificationBadge(lead.classification)
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto">
       <Link
         href="/dashboard"
         className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-800 mb-6"
@@ -53,7 +53,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
       </Link>
 
       <div className="bg-white rounded-lg border p-6 mb-6">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-xl font-bold mb-1">{formatPhone(lead.buyerPhone)}</h1>
             <p className="text-xs text-neutral-400 mt-0.5">
@@ -69,7 +69,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-start sm:items-end gap-2">
             <label className="text-xs text-neutral-500">Status</label>
             <Select
               value={lead.status}

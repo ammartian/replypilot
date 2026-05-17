@@ -43,7 +43,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Leads</h1>
 
       {leads.length === 0 ? (
@@ -71,11 +71,11 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   {lead.summary && (
-                    <span className="text-sm text-neutral-500 max-w-xs truncate">
+                    <span className="hidden sm:inline text-sm text-neutral-500 max-w-xs truncate">
                       {lead.summary}
                     </span>
                   )}
-                  <span className="text-xs text-neutral-400">
+                  <span className="hidden sm:inline text-xs text-neutral-400">
                     {formatDateTime(lead._creationTime)}
                   </span>
                   <span

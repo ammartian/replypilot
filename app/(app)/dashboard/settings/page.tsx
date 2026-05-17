@@ -19,7 +19,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-4 md:p-8 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
       <div className="space-y-6">
@@ -62,7 +62,7 @@ export default function SettingsPage() {
               {agent?.metaPhoneNumberId && (
                 <>
                   <span className="text-neutral-500">Phone Number ID</span>
-                  <span className="font-medium font-mono text-xs">{agent.metaPhoneNumberId}</span>
+                  <span className="font-medium font-mono text-xs break-all">{agent.metaPhoneNumberId}</span>
                 </>
               )}
             </div>

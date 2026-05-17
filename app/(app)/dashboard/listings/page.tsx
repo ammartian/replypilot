@@ -150,7 +150,7 @@ export default function ListingsPage() {
   const listings = useQuery(api.listings.getListingsForAgent)
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-10 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 py-6 md:px-6 md:py-10 space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Listings</h1>
         <p className="text-sm text-neutral-500 mt-1">Manage your property listings. Editing content re-indexes the listing for AI search.</p>
