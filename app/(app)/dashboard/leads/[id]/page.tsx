@@ -5,7 +5,7 @@ import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import type { Id, Doc } from '@/convex/_generated/dataModel'
 import Link from 'next/link'
-import { classificationBadge, formatPhone } from '@/lib/lead-utils'
+import { classificationBadge, formatPhone, formatDateTime, formatTime } from '@/lib/lead-utils'
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -56,6 +56,9 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-xl font-bold mb-1">{formatPhone(lead.buyerPhone)}</h1>
+            <p className="text-xs text-neutral-400 mt-0.5">
+              Created {formatDateTime(lead._creationTime)}
+            </p>
             <div className="flex items-center gap-2 mt-2">
               <Badge className={badge.color}>{badge.label}</Badge>
               {lead.handedOff && (
@@ -118,7 +121,10 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                 >
                   {msg.role === 'buyer' ? 'Buyer' : 'AI'}
                 </span>
-                <p className="text-sm text-neutral-700 leading-relaxed">{msg.content}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-neutral-700 leading-relaxed">{msg.content}</p>
+                  <p className="text-xs text-neutral-400 mt-1">{formatDateTime(msg._creationTime)}</p>
+                </div>
               </div>
             ))
           )}

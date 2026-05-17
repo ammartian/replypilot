@@ -5,7 +5,7 @@ import { api } from '@/convex/_generated/api'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { classificationBadge, formatPhone } from '@/lib/lead-utils'
+import { classificationBadge, formatPhone, formatDateTime } from '@/lib/lead-utils'
 import { getOnboardingStep } from '@/lib/onboarding'
 import { Badge } from '@/components/ui/badge'
 import type { Doc } from '@/convex/_generated/dataModel'
@@ -75,6 +75,9 @@ export default function DashboardPage() {
                       {lead.summary}
                     </span>
                   )}
+                  <span className="text-xs text-neutral-400">
+                    {formatDateTime(lead._creationTime)}
+                  </span>
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full ${
                       lead.status === 'new'

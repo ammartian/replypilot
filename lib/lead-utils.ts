@@ -32,3 +32,22 @@ export function statusLabel(status: LeadStatus): string {
 export function formatPhone(phone: string): string {
   return phone.startsWith('+') ? phone : `+${phone}`
 }
+
+export function formatDateTime(ms: number): string {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(ms))
+}
+
+export function formatTime(ms: number): string {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(ms))
+}
